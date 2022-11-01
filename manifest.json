@@ -1,0 +1,13 @@
+{
+  "name": "Git Well Soon",
+  "description": "Because https://github.com/community/community/discussions/5486",
+  "version": "0.0.0.1",
+  "manifest_version": 3,
+  "icons": {
+    "128": "assets/128x128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["webNavigation"]
+}
