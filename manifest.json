@@ -1,7 +1,7 @@
 {
   "name": "Git Well Soon",
   "description": "Because https://github.com/community/community/discussions/5486",
-  "version": "0.0.0.1",
+  "version": "0.0.0.2",
   "manifest_version": 3,
   "icons": {
     "128": "assets/128x128.png"
@@ -9,5 +9,12 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["webNavigation"]
+  "content_scripts": [
+    {
+      "matches": ["*://*/*/pull/*/files*"],
+      "js": ["content.js"]
+    }
+  ],
+  "permissions": ["history", "scripting"],
+  "host_permissions": ["*://*/*/pull/*/files*"]
 }

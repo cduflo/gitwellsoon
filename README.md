@@ -8,4 +8,6 @@ When reviewing pull requests on enterprise or commercial github, there is an opt
 
 This extension knows when it is on a github pull request page and adds the query parameter to the url, effectively persisting the setting 'Hide whitespace changes'.
 
+- Using the `Hide whitespace` checkbox within Github will be honored for the current pull request view.
+
 Wishing Git all the best and hope it recovers [soon](https://github.com/community/community/discussions/5486).
