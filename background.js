@@ -1,7 +1,9 @@
 let shouldHideWhitespace = true;
 
 const isGitPRUrl = (url) => {
-  return !!url.match(/(\/\/git)((?=.*pull)(?=.*files)|(?=.*compare))/);
+  return !!url.match(
+    /(\/\/git)((?=.*pull)(?=.*files)|(?=.*compare)|(?=.*commit))/
+  );
 };
 
 const isGithubUrl = (url) => {
