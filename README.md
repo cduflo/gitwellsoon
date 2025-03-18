@@ -4,12 +4,36 @@
 
 [GET IT in the Chrome App Store](https://chrome.google.com/webstore/detail/git-well-soon/ehpeaofieafibmhiagianfjjblpnmbdo)
 
-### Persist the 'Hide whitespace changes' Setting
+### About
 
-When reviewing pull requests on enterprise or commercial github, there is an option to hide whitespace changes. This option is not persisted and has to be toggled each time a user reviews a pull request. The option can be toggled by adding a query parameter to the url.
+Git Well Soon is a Chrome extension (version 0.0.0.3) that automatically persists the 'Hide whitespace changes' setting when reviewing pull requests on GitHub and GitHub Enterprise instances.
 
-This extension knows when it is on a github pull request page and adds the query parameter to the url, effectively persisting the setting 'Hide whitespace changes'.
+### Features
 
-- Using the `Hide whitespace` checkbox within Github will be honored for the current pull request view.
+- **Automatic Whitespace Handling**: Automatically adds the whitespace hiding query parameter (`w=1`) to GitHub pull request URLs
+- **Works with GitHub & GitHub Enterprise**: Compatible with both public GitHub and private GitHub Enterprise instances
+- **User Preference Respect**: Honors manual user toggles of the whitespace setting
+- **Seamless Integration**: Works behind the scenes without requiring any user configuration
+- **Minimal Permissions**: Uses only the necessary permissions to function, enhancing your privacy and security
 
-Issue: [soon](https://github.com/community/community/discussions/5486).
+### How It Works
+
+When you navigate to a pull request page with the `/files` view on GitHub or GitHub Enterprise, the extension:
+
+1. Detects if you're on a GitHub pull request page
+2. Checks if the whitespace parameter is already set
+3. If not set, automatically adds `?w=1` to hide whitespace changes
+4. Respects manual changes to the whitespace setting by monitoring the checkbox
+
+### Technical Details
+
+- **Manifest Version**: 3
+- **No Special Permissions Required**: Unlike many extensions, Git Well Soon requires no special permissions to function
+- **Content Scripts**: Run only on GitHub pull request file views, commit views, and compare views
+- **Lightweight Design**: Operates directly in the page context without background processes
+
+The extension was created in response to a GitHub community issue where users requested persistent whitespace settings: [GitHub Community Discussion #5486](https://github.com/community/community/discussions/5486).
+
+### Usage
+
+Simply install the extension and browse GitHub pull requests as usual. The whitespace hiding is enabled by default and will be automatically applied to all pull request file views.
