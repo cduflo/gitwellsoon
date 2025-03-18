@@ -6,7 +6,7 @@
 
 ### About
 
-Git Well Soon is a Chrome extension (version 0.0.0.3) that automatically persists the 'Hide whitespace changes' setting when reviewing pull requests on GitHub and GitHub Enterprise instances.
+Git Well Soon is a Chrome extension (version 0.0.0.4) that automatically persists the 'Hide whitespace changes' setting when reviewing pull requests on GitHub and GitHub Enterprise instances.
 
 ### Features
 
