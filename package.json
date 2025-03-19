@@ -5,7 +5,8 @@
   "main": "content.js",
   "scripts": {
     "test": "jest",
-    "test:e2e": "jest e2e.test.js"
+    "test:e2e": "jest e2e.test.js",
+    "build": "node scripts/build.js"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
