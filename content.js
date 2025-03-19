@@ -109,4 +109,12 @@ const observeUrlChange = () => {
 
 window.addEventListener('load', observeUrlChange);
 
-export { isDebugEnabled, isGitHubSite, isRelevantPage, addWhitespaceParam };
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    isDebugEnabled,
+    isGitHubSite,
+    isRelevantPage,
+    addWhitespaceParam,
+  };
+}

@@ -1,21 +1,18 @@
-const {
-  isDebugEnabled,
-  isGitHubSite,
-  isRelevantPage,
-  addWhitespaceParam,
-} = require('./content');
+/**
+ * @jest-environment jsdom
+ */
+
 const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-const { JSDOM } = require('jsdom');
+// Import functions directly from content.js
+const functions = require('./content.js');
+const { isDebugEnabled, isGitHubSite, isRelevantPage, addWhitespaceParam } =
+  functions;
 
-// Create a new JSDOM instance
-const dom = new JSDOM('', { url: 'https://github.com/pull/123/files' });
-global.window = dom.window;
-global.document = dom.window.document;
-
-global.window.history.replaceState = jest.fn();
+// Mock window.history.replaceState
+window.history.replaceState = jest.fn();
 
 describe('isDebugEnabled', () => {
   it('should return true if debug=true is in the URL', () => {

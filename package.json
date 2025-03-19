@@ -10,9 +10,6 @@
   "scripts": {
     "test": "jest"
   },
-  "jest": {
-    "testEnvironment": "jsdom"
-  },
   "babel": {
     "presets": [
       "@babel/preset-env"
