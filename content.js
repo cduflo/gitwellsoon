@@ -20,8 +20,8 @@ function isGitHubSite() {
   const host = window.location.hostname;
   const result =
     host === 'github.com' ||
-    host.includes('ghe.com') ||
-    host.includes('github') ||
+    host.includes('ghe.') ||
+    host.includes('github.') ||
     // Common GitHub Enterprise patterns
     /git\..*/.test(host);
   log(`Checking if GitHub site: ${host} => ${result}`);
@@ -62,7 +62,6 @@ function addWhitespaceParam() {
   log(`Current URL: ${url.toString()}, all params:`, allParams);
 
   if (isHidingWhitespace === null) {
-    // Add w=1 while preserving all other parameters
     url.searchParams.set('w', '1');
 
     const urlString = url.toString();
@@ -85,10 +84,15 @@ function addWhitespaceParam() {
 }
 
 const observeUrlChange = () => {
+  if (!isGitHubSite()) {
+    log('Not a GitHub site, exiting');
+    return;
+  }
+
   addWhitespaceParam();
   let oldHref = document.location.href;
   const body = document.querySelector('body');
-  const observer = new MutationObserver((mutations) => {
+  const observer = new MutationObserver(() => {
     if (oldHref !== document.location.href) {
       oldHref = document.location.href;
       log('URL changed', document.location.href);
@@ -104,3 +108,5 @@ const observeUrlChange = () => {
 };
 
 window.addEventListener('load', observeUrlChange);
+
+export { isDebugEnabled, isGitHubSite, isRelevantPage, addWhitespaceParam };

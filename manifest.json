@@ -9,15 +9,10 @@
   "content_scripts": [
     {
       "matches": [
-        "*://github.com/*/pull/*/files*",
-        "*://github.com/*/compare/*",
-        "*://github.com/*/commits/*",
-        "*://github.com/*/commit/*",
-        "*://*.ghe.com/*/pull/*/files*",
-        "*://*.ghe.com/*/compare/*",
-        "*://*.ghe.com/*/commits/*",
-        "*://*.ghe.com/*/commit/*",
-        "*://*/pull/*/files*",
+        "*://github.com/*",
+        "*://*.github.com/*",
+        "*://*.ghe.com/*",
+        "*://*/pull/*",
         "*://*/compare/*",
         "*://*/commits/*",
         "*://*/commit/*"
