@@ -1,20 +1,24 @@
 {
   "name": "Git Well Soon",
-  "description": "Because https://github.com/community/community/discussions/5486",
-  "version": "0.0.0.3",
+  "description": "A lightweight Chrome extension to hide whitespace in GitHub",
+  "version": "1.0.0.0",
   "manifest_version": 3,
   "icons": {
     "128": "assets/128x128.png"
   },
-  "background": {
-    "service_worker": "background.js"
-  },
   "content_scripts": [
     {
-      "matches": ["*://*/*/pull/*/files*"],
-      "js": ["content.js"]
+      "matches": [
+        "*://github.com/*",
+        "*://*.github.com/*",
+        "*://*.ghe.com/*",
+        "*://*/pull/*",
+        "*://*/compare/*",
+        "*://*/commits/*",
+        "*://*/commit/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
     }
-  ],
-  "permissions": ["history", "scripting"],
-  "host_permissions": ["*://*/*/pull/*/files*"]
+  ]
 }
