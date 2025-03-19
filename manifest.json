@@ -1,7 +1,7 @@
 {
   "name": "Git Well Soon",
   "description": "A lightweight Chrome extension to hide whitespace in Github PRs and Commits. In response to: https://github.com/community/community/discussions/5486",
-  "version": "0.0.0.4",
+  "version": "1.0.0.0",
   "manifest_version": 3,
   "icons": {
     "128": "assets/128x128.png"

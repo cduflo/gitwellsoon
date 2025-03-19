@@ -1,6 +1,6 @@
 {
   "name": "git-well-soon",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Chrome extension to automatically hide whitespace in GitHub PRs",
   "main": "content.js",
   "scripts": {
