@@ -9,14 +9,19 @@
   "content_scripts": [
     {
       "matches": [
-        "*://github.com/*",
-        "*://*.github.com/*",
+        "*://github.com/*", 
+        "*://*.github.com/*", 
         "*://*.ghe.com/*",
-        "*://*/pull/*",
-        "*://*/compare/*",
-        "*://*/commits/*",
-        "*://*/commit/*"
+        "*://localhost/*",
+        "*://127.0.0.1/*",
+        "*://git.localhost/*"
       ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://*/*"],
+      "include_globs": ["*://git.*/*"],
       "js": ["content.js"],
       "run_at": "document_start"
     }

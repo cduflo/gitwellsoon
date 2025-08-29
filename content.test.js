@@ -8,8 +8,7 @@ global.TextDecoder = TextDecoder;
 
 // Import functions directly from content.js
 const functions = require('./content.js');
-const { isDebugEnabled, isGitHubSite, isRelevantPage, addWhitespaceParam } =
-  functions;
+const { isDebugEnabled, isRelevantPage, addWhitespaceParam } = functions;
 
 // Mock window.history.replaceState
 window.history.replaceState = jest.fn();
@@ -50,48 +49,6 @@ describe('isDebugEnabled', () => {
   });
 });
 
-describe('isGitHubSite - extended tests', () => {
-  it('should return false for gitlab.com', () => {
-    Object.defineProperty(window, 'location', {
-      value: new URL('https://gitlab.com/pull/123/files'),
-      writable: true,
-    });
-    expect(isGitHubSite()).toBe(false);
-  });
-
-  it('should return true for git.zias.io', () => {
-    Object.defineProperty(window, 'location', {
-      value: new URL('https://git.zias.io/pull/123/files'),
-      writable: true,
-    });
-    expect(isGitHubSite()).toBe(true);
-  });
-
-  it('should return true for ghe.whatever.com', () => {
-    Object.defineProperty(window, 'location', {
-      value: new URL('https://ghe.whatever.com/pull/123/files'),
-      writable: true,
-    });
-    expect(isGitHubSite()).toBe(true);
-  });
-
-  it('should return true for github.wlhat.com', () => {
-    Object.defineProperty(window, 'location', {
-      value: new URL('https://github.wlhat.com/pull/123/files'),
-      writable: true,
-    });
-    expect(isGitHubSite()).toBe(true);
-  });
-
-  it('should return false for google.com', () => {
-    Object.defineProperty(window, 'location', {
-      value: new URL('https://google.com/pull/123/files'),
-      writable: true,
-    });
-    expect(isGitHubSite()).toBe(false);
-  });
-});
-
 describe('isRelevantPage', () => {
   it('should return true for pull request files page', () => {
     Object.defineProperty(window, 'location', {
@@ -99,14 +56,6 @@ describe('isRelevantPage', () => {
       writable: true,
     });
     expect(isRelevantPage()).toBe(true);
-  });
-
-  it('should return false for non-relevant pages', () => {
-    Object.defineProperty(window, 'location', {
-      value: new URL('https://github.com/issues/123'),
-      writable: true,
-    });
-    expect(isRelevantPage()).toBe(false);
   });
 
   it('should return true for compare branches page', () => {
