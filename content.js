@@ -17,6 +17,54 @@ const RELEVANT_PATH_PATTERNS = [
   /\/commit\//,
 ];
 
+// User-configurable hosts allowlist (augments built-ins)
+let EXTRA_HOSTS = [];
+
+function loadExtraHosts() {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+      chrome.storage.sync.get({ extraHosts: [] }, (res) => {
+        const v = res && Array.isArray(res.extraHosts) ? res.extraHosts : [];
+        EXTRA_HOSTS = v.map((h) => String(h || '').toLowerCase());
+        log('Loaded extraHosts:', EXTRA_HOSTS);
+      });
+    }
+  } catch (e) {}
+}
+
+loadExtraHosts();
+
+try {
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'sync' && changes.extraHosts) {
+        const v = changes.extraHosts.newValue;
+        EXTRA_HOSTS = Array.isArray(v) ? v.map((h) => String(h || '').toLowerCase()) : [];
+        log('extraHosts updated:', EXTRA_HOSTS);
+      }
+    });
+  }
+} catch (e) {}
+
+function isAllowedHost(host) {
+  try {
+    const h = String(host || '').toLowerCase();
+    // Preserve existing heuristics (built-ins)
+    if (
+      h === 'github.com' ||
+      h.includes('ghe.') ||
+      h.includes('github.') ||
+      /git\..*/.test(h)
+    ) {
+      return true;
+    }
+    // User-provided allowlist
+    return EXTRA_HOSTS.some((p) => h === p || h.endsWith('.' + p));
+  } catch (e) {
+    return false;
+  }
+}
+
 function log(message, ...data) {
   if (!DEBUG) return;
   console.log(`%c[Git Well Soon] ${message}`, 'color: #6f42c1;', ...data);
@@ -27,13 +75,8 @@ log(`DEBUG mode: ${DEBUG ? 'ON' : 'OFF'}`);
 
 function isGitHubSite() {
   const host = window.location.hostname;
-  const result =
-    host === 'github.com' ||
-    host.includes('ghe.') ||
-    host.includes('github.') ||
-    // Common GitHub Enterprise patterns
-    /git\..*/.test(host);
-  log(`Checking if GitHub site: ${host} => ${result}`);
+  const result = isAllowedHost(host);
+  log(`Checking if allowed host: ${host} => ${result}`);
   return result;
 }
 
@@ -56,13 +99,9 @@ function isRelevantPage() {
 function isRelevantLink(link) {
   try {
     const url = new URL(link.href);
-    const isGitHub =
-      url.hostname === 'github.com' ||
-      url.hostname.endsWith('.github.com') ||
-      url.hostname.endsWith('.ghe.com');
-    if (!isGitHub) return false;
+    if (!isAllowedHost(url.hostname)) return false;
     const match = RELEVANT_PATH_PATTERNS.some((re) => re.test(url.pathname));
-    log('[isRelevantLink]', url.pathname, '->', match);
+    log('[isRelevantLink]', url.hostname, url.pathname, '->', match);
     return match;
   } catch (e) {
     log('[isRelevantLink] Error:', e);
@@ -250,5 +289,6 @@ if (typeof module !== 'undefined' && module.exports) {
     isGitHubSite,
     isRelevantPage,
     addWhitespaceParam,
+    isAllowedHost,
   };
 }

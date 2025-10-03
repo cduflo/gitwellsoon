@@ -4,9 +4,11 @@
 
 [GET IT in the Chrome App Store](https://chrome.google.com/webstore/detail/git-well-soon/ehpeaofieafibmhiagianfjjblpnmbdo)
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Z8Z11M8JYN)
+
 ### About
 
-Git Well Soon is a Chrome extension (version 1.0.0.0) that automatically persists the 'Hide whitespace changes' setting when reviewing pull requests on GitHub and GitHub Enterprise instances.
+Git Well Soon is a Chrome extension (version 2.0.0.0) that automatically persists the 'Hide whitespace changes' setting when reviewing pull requests on GitHub and GitHub Enterprise instances.
 
 The name is cheeky way of saying I hope GitHub will implement this feature themselves and make my extension obsolete, Git Well Soon!
 
@@ -30,8 +32,8 @@ When you navigate to a pull request page with the `/files` view on GitHub or Git
 ### Technical Details
 
 - **Manifest Version**: 3
-- **No Special Permissions Required**: Unlike many extensions, Git Well Soon requires no special permissions to function
-- **Content Scripts**: Run only on GitHub pull request file views, commit views, and compare views
+- **Permissions**: Uses the "storage" permission and optional host permissions that are requested at runtime via the popup when you add enterprise hosts. No background/service worker; no scripting permission.
+- **Content Scripts**: Run on GitHub pull request file views, commit views, and compare views. When you grant an enterprise host, the extension also runs on that host for the same routes.
 - **Lightweight Design**: Operates directly in the page context without background processes
 
 The extension was created in response to a GitHub community issue where users requested persistent whitespace settings: [GitHub Community Discussion #5486](https://github.com/community/community/discussions/5486).
@@ -39,3 +41,12 @@ The extension was created in response to a GitHub community issue where users re
 ### Usage
 
 Simply install the extension and browse GitHub pull requests as usual. The whitespace hiding is enabled by default and will be automatically applied to all pull request file views.
+
+### Enterprise hosts
+
+To enable the extension on a custom GitHub Enterprise domain:
+
+1. Click the extension’s toolbar icon to open the popup.
+2. Enter your host (for example: `https://github.company.com`) and click Add.
+3. Accept the one-time “Site access” permission prompt for that host.
+4. Reload the target tab; `w=1` will be applied on PR files/compare/commit(s) routes on that host.

@@ -147,4 +147,16 @@ describe('Git Well Soon Extension E2E Tests', () => {
     const url = new URL(currentUrl);
     expect(url.searchParams.get('w')).toBe('1');
   });
+
+  test('should not modify arbitrary hosts without permission', async () => {
+    // Navigate to a GitHub-like path on example.com, which is not granted
+    await page.goto('https://example.com/owner/repo/pull/123/files', { waitUntil: 'domcontentloaded', timeout: 45000 });
+
+    await new Promise((r) => setTimeout(r, 2000));
+
+    const currentUrl = page.url();
+    const url = new URL(currentUrl);
+    expect(url.hostname).toContain('example.com');
+    expect(url.searchParams.get('w')).toBeNull();
+  }, 60000);
 });

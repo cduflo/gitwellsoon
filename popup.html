@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font: 14px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 12px;
+        width: 320px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+      }
+      h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+      h4 {
+        margin: 12px 0 6px;
+        font-size: 14px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      input {
+        flex: 1;
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+      }
+      button {
+        padding: 6px 10px;
+      }
+      .help {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        line-height: 18px;
+        text-align: center;
+        border-radius: 50%;
+        border: 1px solid #d0d7de;
+        color: #57606a;
+        background: #f6f8fa;
+        font-size: 12px;
+        cursor: help;
+        margin-left: 6px;
+      }
+      .help:hover {
+        background: #eef1f4;
+      }
+      ul {
+        padding-left: 16px;
+        margin: 10px 0 0;
+        max-height: 220px;
+        overflow: auto;
+      }
+      li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 4px 0;
+      }
+      li button {
+        padding: 2px 6px;
+      }
+      .msg {
+        margin-top: 8px;
+        font-size: 12px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+      .msg.error {
+        background: #ffeef0;
+        color: #86181d;
+        border: 1px solid #ffdce0;
+      }
+      .msg.success {
+        background: #e6ffed;
+        color: #1d7a32;
+        border: 1px solid #bef5cb;
+      }
+      .msg.success button.cta {
+        background: #1d7a32;
+        color: #fff;
+        border: none;
+        margin-left: 6px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .msg.success button.cta:hover {
+        background: #176428;
+      }
+      .notice {
+        color: #222;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 8px;
+      }
+      .hint {
+        color: #666;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .row button {
+        height: 36px;
+        background: #2f81f7;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        padding: 0 12px;
+      }
+      .row button:hover {
+        background: #1f6feb;
+      }
+      li button {
+        background: transparent;
+        color: #d1242f;
+        border: 1px solid #ffd2d6;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      li button:hover {
+        background: #ffdce0;
+      }
+      hr.divider {
+        margin: 10px 0;
+        border: 0;
+        border-top: 1px solid #d0d7de;
+      }
+      .footer {
+        display: flex;
+        justify-content: center;
+        margin-top: 8px;
+      }
+      .footer a img {
+        display: block;
+      }
+      .tip {
+        margin: 6px 0;
+        font-size: 12px;
+        color: #57606a;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>
+      Custom GitHub Hosts
+      <span
+        class="help"
+        title="Add your company’s GitHub Enterprise host (e.g., https://github.company.com) to enable Git Well Soon on that domain. After adding a host, the extension will apply ?w=1 on PR files, compare, commit(s) routes."
+        >?</span
+      >
+    </h3>
+
+    <div class="row">
+      <input id="host" placeholder="https://abc-github.cloud.xyz" />
+      <button id="add">Add</button>
+    </div>
+
+    <div class="tip">
+      Note: After granting site access, you may need to reload the target tab
+      once to activate changes.
+    </div>
+    <div id="msg" class="msg" aria-live="polite" style="display: none"></div>
+    <h4 id="hosts-header" style="display: none">Allowed hosts</h4>
+    <ul id="list"></ul>
+    <hr class="divider" />
+    <div class="footer">
+      <a
+        href="https://ko-fi.com/Z8Z11M8JYN"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <img
+          height="36"
+          style="border: 0px; height: 36px"
+          src="https://storage.ko-fi.com/cdn/kofi5.png?v=6"
+          border="0"
+          alt="Buy Me a Coffee at ko-fi.com"
+        />
+      </a>
+    </div>
+    <script src="popup-lib.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
