@@ -12,7 +12,7 @@
     "default_title": "Git Well Soon",
     "default_popup": "popup.html"
   },
-  "permissions": ["storage", "tabs"],
+  "optional_permissions": ["storage", "tabs"],
   "optional_host_permissions": ["https://*/*"],
   "content_scripts": [
     {

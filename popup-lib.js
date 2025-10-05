@@ -55,6 +55,53 @@
     await pSet(chromeLike, { extraHosts: list });
   }
 
+  function pGetAll(chromeLike) {
+    return new Promise((resolve) => {
+      try {
+        chromeLike.permissions.getAll((perms) => resolve(perms || { origins: [], permissions: [] }));
+      } catch (_) {
+        resolve({ origins: [], permissions: [] });
+      }
+    });
+  }
+
+  async function listGrantedHosts(chromeLike) {
+    const { origins = [] } = await pGetAll(chromeLike);
+    const hosts = [];
+    for (const origin of origins) {
+      try {
+        if (!origin.startsWith('https://')) continue;
+
+        // Only skip when the hostname itself is a wildcard (e.g., https://*/* or https://%2A/*)
+        const mHost = origin.match(/^https:\/\/([^/]+)/i);
+        const rawHost = mHost ? mHost[1] : '';
+        if (!rawHost) continue;
+        if (rawHost === '*' || rawHost.toLowerCase() === '%2a') continue;
+
+        let host = '';
+        try {
+          const u = new URL(origin);
+          host = u.hostname;
+        } catch (e) {
+          const m = origin.match(/^https:\/\/([^/]+)/i);
+          host = m ? m[1] : '';
+        }
+        if (!host) continue;
+        try {
+          host = decodeURIComponent(host);
+        } catch (_) {}
+        if (!host || host.includes('%') || host.includes('*')) continue;
+
+        // Exclude built-in GitHub/GHE hosts from the list; only show user-granted hosts
+        const builtIn = host === 'github.com' || host.endsWith('.github.com') || host.endsWith('.ghe.com');
+        if (builtIn) continue;
+        hosts.push(host);
+      } catch (_) {}
+    }
+    // Deduplicate
+    return Array.from(new Set(hosts)).sort();
+  }
+
   function containsPermission(chromeLike, host) {
     return new Promise((resolve) => {
       try {
@@ -114,6 +161,7 @@
     syncHostsWithPermissions,
     queryActiveTab,
     scheduleReloadIfActiveMatches,
+    listGrantedHosts,
   };
 
   if (typeof module !== 'undefined' && module.exports) {
