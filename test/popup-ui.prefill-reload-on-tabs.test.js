@@ -24,7 +24,7 @@ describe('popup prefill and reload on enabling tabs', () => {
   });
 
   test('enabling tabs pre-fills host if input empty and reloads tab', async () => {
-    require('./popup.js');
+    require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await new Promise((r) => setTimeout(r, 20));
 

@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-const PopupLib = require('./popup-lib.js');
+const PopupLib = require('../popup-lib.js');
 
 jest.useFakeTimers();
 

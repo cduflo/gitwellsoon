@@ -6,8 +6,8 @@ module.exports = {
     headless: false,
     product: 'chrome',
     args: [
-      `--disable-extensions-except=${path.join(__dirname)}`,
-      `--load-extension=${path.join(__dirname)}`,
+      `--disable-extensions-except=${path.join(__dirname, '..')}`,
+      `--load-extension=${path.join(__dirname, '..')}`,
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--enable-logging',

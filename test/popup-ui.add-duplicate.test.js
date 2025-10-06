@@ -24,7 +24,7 @@ describe('popup add duplicate host behavior', () => {
   });
 
   test('adding the same host twice shows error and does not duplicate', async () => {
-    require('./popup.js');
+    require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await new Promise((r) => setTimeout(r, 10));
 

@@ -25,6 +25,8 @@
         width: 340px;
         background: var(--bg);
         color: var(--fg);
+        border-radius: 8px; /* popover rounding */
+        overflow: hidden; /* clip children to rounded corners */
       }
       h3 {
         margin: 0 0 10px;
@@ -222,7 +224,9 @@
         padding: 0;
         cursor: pointer;
         z-index: 1; /* ensure above the input element */
-        display: none; /* shown when input has value */
+        display: inline-flex; /* always visible */
+        align-items: center;
+        justify-content: center;
       }
       .clear-btn:disabled {
         opacity: 0.6;

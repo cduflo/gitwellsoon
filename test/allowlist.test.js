@@ -17,7 +17,7 @@ describe('allowlist via EXTRA_HOSTS', () => {
       cb({ extraHosts: ['abc-github.cloud.xyz'] });
     });
 
-    const functions = require('./content.js');
+    const functions = require('../content.js');
     const { isGitHubSite } = functions;
 
     Object.defineProperty(window, 'location', {

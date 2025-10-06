@@ -23,16 +23,16 @@ describe('popup clear button behavior', () => {
     `;
   });
 
-  test('clear button shows when input has value and hides after clearing', async () => {
-    require('./popup.js');
+  test('clear button is always displayed and clears value', async () => {
+    require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await new Promise((r) => setTimeout(r, 10));
 
     const input = document.getElementById('host');
     const clearBtn = document.getElementById('clear-host');
 
-    // Initially hidden
-    expect(clearBtn.style.display).toBe('none');
+    // Always visible
+    expect(clearBtn.style.display).not.toBe('none');
 
     input.value = 'https://abc.example.com';
     input.dispatchEvent(new Event('input'));
@@ -42,11 +42,12 @@ describe('popup clear button behavior', () => {
     clearBtn.click();
     await new Promise((r) => setTimeout(r, 10));
     expect(input.value).toBe('');
-    expect(clearBtn.style.display).toBe('none');
+    // Still visible after clearing
+    expect(clearBtn.style.display).not.toBe('none');
   });
 
-  test('clear button disabled when storage permission off', async () => {
-    require('./popup.js');
+  test('clear button disabled when storage permission off and remains visible', async () => {
+    require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await new Promise((r) => setTimeout(r, 10));
 
@@ -61,5 +62,7 @@ describe('popup clear button behavior', () => {
     document.getElementById('storage-switch').click();
     await new Promise((r) => setTimeout(r, 10));
     expect(clearBtn.disabled).toBe(true);
+    // It should remain visible even when disabled, as long as input has value
+    expect(clearBtn.style.display).not.toBe('none');
   });
 });

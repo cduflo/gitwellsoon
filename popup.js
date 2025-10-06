@@ -164,14 +164,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     msgEl.style.display = text ? '' : 'none';
   }
 
-  function updateClearBtn() {
-    if (!clearBtn) return;
-    clearBtn.style.display = input && input.value ? '' : 'none';
-  }
-
-  // Initialize clear button visibility on load
-  updateClearBtn();
-
   async function refreshPermUI() {
     chrome.permissions.contains({ permissions: ['storage'] }, async (g) => {
       if (statusDot) statusDot.style.background = g ? '#2da44e' : '#d1242f';
@@ -231,7 +223,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           const u = new URL(tab.url);
           if (u.hostname) {
             input.value = `https://${u.hostname}`;
-            updateClearBtn();
           }
         } catch (_) {}
       });
@@ -325,12 +316,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   input.addEventListener('input', () => {
     setMsg('');
-    updateClearBtn();
   });
 
   clearBtn?.addEventListener('click', () => {
     input.value = '';
-    updateClearBtn();
     input.focus();
   });
 });

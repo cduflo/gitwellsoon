@@ -44,9 +44,55 @@ Simply install the extension and browse GitHub pull requests as usual. The white
 
 ### Enterprise hosts
 
-To enable the extension on a custom GitHub Enterprise domain:
+The extension targets some known GitHub Enterprise url patterns, but you can manually add your specific GitHub Enterprise url domain by:
 
 1. Click the extension’s toolbar icon to open the popup.
-2. Enter your host (for example: `https://github.company.com`) and click Add.
-3. Accept the one-time “Site access” permission prompt for that host.
-4. Reload the target tab; `w=1` will be applied on PR files/compare/commit(s) routes on that host.
+2. Enable the required `Storage` permission, so the extension can save and manage your list of hosts.
+3. Optionally, enable the `Tabs` permission, so the extension can intelligently reload and auto-fill host names. Again, this is an optional permission to enable nice-to-have features.
+4. Enter your host (for example: `https://github.company.com`) and click Add.
+5. Reload the target tab; `w=1` will be applied on PR files/compare/commit(s) routes on that host.
+
+---
+
+### Local testing via ngrok (simulate a GHE host)
+
+You can test the extension end-to-end against a temporary HTTPS host using ngrok. This is useful to verify optional host permissions, popup behavior, and the content script on non-github.com domains.
+
+Prereqs:
+
+- ngrok installed and logged in (https://ngrok.com/download)
+- Any simple static server (examples below use Node or Python). macOS/Linux are fine.
+
+Steps:
+
+1. Run a static server on localhost:8080:
+
+- Node (built-in): `npm run start:site` (equivalent to `node scripts/dev-site.js -p 8080`)
+
+2. Start an HTTPS tunnel
+
+- `ngrok http 8080`
+- Note the https URL shown, e.g.: `https://1234567890.ngrok-free.app`
+
+3. Grant the host in the extension popup
+
+- Open the popup, enter exactly the host shown by ngrok, e.g. `https://1234567890.ngrok-free.app`, and click Add.
+- Accept the permission prompt. If the Chrome permission prompt closes the popup, just reopen it; the host will finalize automatically.
+- If you enable Tabs permission, the current tab will auto-reload after granting.
+
+4. Navigate to the simulated PR files URL
+
+- Visit: `https://1234567890.ngrok-free.app/owner/repo/pull/123/files`
+- The extension should append `?w=1` to the URL automatically.
+
+What to verify:
+
+- Adding/removing the host updates the popup list immediately (no manual refresh).
+- With Tabs permission enabled, the active tab auto-reloads after add/remove.
+- Storage permission off disables input and clears the list display; turning it back on restores the list.
+
+Troubleshooting:
+
+- If input doesn’t prefill with the current host, enable Tabs permission.
+- If add appears to require a second click, just reopen the popup—pending adds are finalized automatically.
+- Make sure you add the exact ngrok subdomain (no wildcards).

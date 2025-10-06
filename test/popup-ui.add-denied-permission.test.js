@@ -25,7 +25,7 @@ describe('popup add host denied permission edge case', () => {
     const origRequest = global.chrome.permissions.request;
     global.chrome.permissions.request = jest.fn((req, cb) => cb(false));
 
-    require('./popup.js');
+    require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await new Promise((r) => setTimeout(r, 10));
 

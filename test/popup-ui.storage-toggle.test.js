@@ -24,7 +24,7 @@ describe('popup storage permission toggle restores list', () => {
     // Seed storage
     await new Promise((r) => global.chrome.storage.sync.set({ extraHosts: ['abc.example.com'] }, () => r()));
 
-    require('./popup.js');
+    require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await new Promise((r) => setTimeout(r, 10));
 

@@ -21,7 +21,7 @@ describe('popup tabs permission toggle', () => {
   });
 
   test('tabs switch toggles aria-checked and permission state', async () => {
-    require('./popup.js');
+    require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await new Promise((r) => setTimeout(r, 10));
 

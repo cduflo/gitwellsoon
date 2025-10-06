@@ -14,10 +14,8 @@ describe('isAllowedHost (built-ins)', () => {
   it('returns true for built-in github.com', () => {
     // Ensure storage returns empty allowlist
     chrome.storage.sync.get.mockImplementation((defaults, cb) => cb({ extraHosts: [] }));
-const { isGitHubSite } = require('./content.js');
-Object.defineProperty(window, 'location', { value: new URL('https://github.com/pull/1/files'), writable: true });
-expect(isGitHubSite()).toBe(true);
+    const { isGitHubSite } = require('../content.js');
+    Object.defineProperty(window, 'location', { value: new URL('https://github.com/pull/1/files'), writable: true });
+    expect(isGitHubSite()).toBe(true);
   });
-
-
 });

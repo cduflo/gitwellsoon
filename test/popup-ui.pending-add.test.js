@@ -27,7 +27,7 @@ describe('popup pending-add finalize', () => {
     await new Promise((r) => global.chrome.permissions.request({ origins: ['https://abc.example.com/*'] }, () => r()));
     await new Promise((r) => global.chrome.storage.sync.set({ pendingHost: 'abc.example.com', extraHosts: [] }, () => r()));
 
-    require('./popup.js');
+    require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
 
     // Allow async callbacks to run

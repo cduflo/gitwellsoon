@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-const PopupLib = require('./popup-lib.js');
+const PopupLib = require('../popup-lib.js');
 
 describe('popup remove triggers reload and updates storage', () => {
   beforeEach(() => {
@@ -34,7 +34,7 @@ describe('popup remove triggers reload and updates storage', () => {
     await new Promise((r) => global.chrome.storage.sync.set({ extraHosts: ['abc-github.cloud.xyz'] }, () => r()));
     await new Promise((r) => global.chrome.permissions.request({ origins: ['https://abc-github.cloud.xyz/*'] }, () => r()));
 
-    require('./popup.js');
+    require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await new Promise((r) => setTimeout(r, 10));
 
