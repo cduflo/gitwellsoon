@@ -169,6 +169,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     clearBtn.style.display = input && input.value ? '' : 'none';
   }
 
+  // Initialize clear button visibility on load
+  updateClearBtn();
+
   async function refreshPermUI() {
     chrome.permissions.contains({ permissions: ['storage'] }, async (g) => {
       if (statusDot) statusDot.style.background = g ? '#2da44e' : '#d1242f';
