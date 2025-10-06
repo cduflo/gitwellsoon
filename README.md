@@ -31,10 +31,21 @@ When you navigate to a pull request page with the `/files` view on GitHub or Git
 
 ### Technical Details
 
-- **Manifest Version**: 3
-- **Permissions**: Uses the "storage" permission and optional host permissions that are requested at runtime via the popup when you add enterprise hosts. No background/service worker; no scripting permission.
-- **Content Scripts**: Run on GitHub pull request file views, commit views, and compare views. When you grant an enterprise host, the extension also runs on that host for the same routes.
-- **Lightweight Design**: Operates directly in the page context without background processes
+- Manifest: MV3
+- Permissions:
+  - Required: `storage` (enables saving your custom hosts in `chrome.storage.sync` under `extraHosts`).
+  - Optional host origins (requested at runtime when you add a host via the popup).
+  - Optional: `tabs` (requested from the popup only if you enable it; used to prefill the input with the active tab’s host and to auto-reload the active tab after enabling Tabs or after add/remove of a host). No background/service worker and no scripting permission.
+- Content script scope: Runs on GitHub and, once granted, on your enterprise host(s) for PR files, compare, commits, and commit pages. The logic is gated by an allowlist (`github.com` and typical GitHub-like hosts by default; your custom hosts are matched from `extraHosts`).
+- Popup behavior:
+  - Add/remove hosts; host list updates immediately; clear button always visible; input can prefill from the active tab if Tabs permission is granted.
+  - If the Chrome permission prompt closes the popup, the pending add is finalized upon reopening (no second click).
+- Implementation notes:
+  - `listGrantedHosts` enumerates granted origins and excludes built-in GitHub hosts and wildcard-only hostnames.
+  - `scheduleReloadIfActiveMatches` reloads the active tab (when Tabs is granted) if the hostname matches the host that was just added/removed.
+- Tests & Dev:
+  - All tests live in `test/`; UI and library coverage added; e2e tests hardened for SPA navigation and offline scenarios.
+  - Local dev site under `site/` with a tiny server `scripts/dev-site.js`. Start with `npm run start:site` and (optionally) tunnel via `ngrok http 8080`.
 
 The extension was created in response to a GitHub community issue where users requested persistent whitespace settings: [GitHub Community Discussion #5486](https://github.com/community/community/discussions/5486).
 
