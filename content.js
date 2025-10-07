@@ -17,6 +17,7 @@ const RELEVANT_PATH_PATTERNS = [
   /\/commit\//,
 ];
 
+
 function log(message, ...data) {
   if (!DEBUG) return;
   console.log(`%c[Git Well Soon] ${message}`, 'color: #6f42c1;', ...data);
@@ -31,7 +32,6 @@ function isGitHubSite() {
     host === 'github.com' ||
     host.includes('ghe.') ||
     host.includes('github.') ||
-    // Common GitHub Enterprise patterns
     /git\..*/.test(host);
   log(`Checking if GitHub site: ${host} => ${result}`);
   return result;
@@ -56,13 +56,8 @@ function isRelevantPage() {
 function isRelevantLink(link) {
   try {
     const url = new URL(link.href);
-    const isGitHub =
-      url.hostname === 'github.com' ||
-      url.hostname.endsWith('.github.com') ||
-      url.hostname.endsWith('.ghe.com');
-    if (!isGitHub) return false;
     const match = RELEVANT_PATH_PATTERNS.some((re) => re.test(url.pathname));
-    log('[isRelevantLink]', url.pathname, '->', match);
+    log('[isRelevantLink]', url.hostname, url.pathname, '->', match);
     return match;
   } catch (e) {
     log('[isRelevantLink] Error:', e);
@@ -94,11 +89,6 @@ function updateLink(link) {
  * Debounces the callback to reduce performance impact.
  */
 function setupRelevantPageObserver() {
-  if (!isGitHubSite()) {
-    log('Not a GitHub site, exiting');
-    return;
-  }
-
   addWhitespaceParam();
   let oldHref = document.location.href;
   const body = document.querySelector('body');
@@ -164,11 +154,6 @@ function setupRelevantPageObserver() {
 
 function addWhitespaceParam() {
   log('addWhitespaceParam called');
-
-  if (!isGitHubSite()) {
-    log('Not a GitHub site, exiting');
-    return;
-  }
 
   if (!isRelevantPage()) {
     log('Not a relevant page, exiting');
@@ -238,7 +223,34 @@ function interceptLinkClicks() {
   ); // Use capture to run before GitHub's handlers
 }
 
-window.addEventListener('load', () => {
+function getExtraHosts() {
+  return new Promise((resolve) => {
+    try {
+      chrome.storage.sync.get({ extraHosts: [] }, (res) => {
+        const list = Array.isArray(res.extraHosts) ? res.extraHosts : [];
+        resolve(list.map((h) => String(h || '').toLowerCase()));
+      });
+    } catch (e) {
+      resolve([]);
+    }
+  });
+}
+
+async function isHostEnabled() {
+  const host = String(window.location.hostname || '').toLowerCase();
+  if (host === 'github.com' || host.includes('ghe.') || host.includes('github.') || /git\..*/.test(host)) {
+    return true;
+  }
+  const extras = await getExtraHosts();
+  return extras.some((h) => host === h || host.endsWith('.' + h));
+}
+
+window.addEventListener('load', async () => {
+  const allowed = await isHostEnabled();
+  if (!allowed) {
+    log('Current host not allowed via storage allowlist; exiting');
+    return;
+  }
   interceptLinkClicks();
   setupRelevantPageObserver();
 });

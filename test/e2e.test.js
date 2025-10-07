@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 
-const EXTENSION_PATH = path.join(__dirname); // Get absolute path to extension directory
+const EXTENSION_PATH = path.join(__dirname, '..'); // point to project root (extension directory)
 const TEST_PR_URL = 'https://github.com/mui/material-ui/pull/45606/files';
 const TEST_NON_PR_URL = 'https://github.com/mui/material-ui/pull/45606';
 
@@ -136,9 +136,16 @@ describe('Git Well Soon Extension E2E Tests', () => {
 
     await new Promise((r) => setTimeout(r, 2000));
 
+    await page.waitForSelector('a[href*="/files"]', { timeout: 15000 });
     await page.click('a[href*="/files"]');
 
-    await new Promise((r) => setTimeout(r, 2000));
+    // wait until URL includes /files and the extension injects w=1
+    await page.waitForFunction(() => {
+      try {
+        const u = new URL(window.location.href);
+        return u.pathname.includes('/files') && u.searchParams.get('w') === '1';
+      } catch (_) { return false; }
+    }, { timeout: 15000 });
 
     // Get the current URL
     const currentUrl = page.url();
@@ -147,4 +154,33 @@ describe('Git Well Soon Extension E2E Tests', () => {
     const url = new URL(currentUrl);
     expect(url.searchParams.get('w')).toBe('1');
   });
+
+  test('should not modify arbitrary hosts without permission', async () => {
+    // Preflight: skip test if network not available
+    let online = true;
+    try {
+      await page.goto('https://example.com', { waitUntil: 'domcontentloaded', timeout: 8000 });
+    } catch (e) {
+      online = false;
+    }
+    if (!online) {
+      console.warn('Skipping non-permission host test due to offline/unreachable example.com');
+      return;
+    }
+
+    // Navigate to a GitHub-like path on example.com, which is not granted
+    try {
+      await page.goto('https://example.com/owner/repo/pull/123/files', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    } catch (e) {
+      console.warn('Skipping path-specific example.com navigation due to timeout/unreachable');
+      return;
+    }
+
+    await new Promise((r) => setTimeout(r, 2000));
+
+    const currentUrl = page.url();
+    const url = new URL(currentUrl);
+    expect(url.hostname).toContain('example.com');
+    expect(url.searchParams.get('w')).toBeNull();
+  }, 60000);
 });

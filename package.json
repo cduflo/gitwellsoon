@@ -1,12 +1,13 @@
 {
   "name": "git-well-soon",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Chrome extension to automatically hide whitespace in GitHub PRs",
   "main": "content.js",
   "scripts": {
     "test": "jest",
-    "test:e2e": "jest e2e.test.js",
-    "build": "node scripts/build.js"
+    "test:e2e": "jest test/e2e.test.js",
+    "build": "node scripts/build.js",
+    "start:site": "node scripts/dev-site.js -p 8080"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
