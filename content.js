@@ -12,6 +12,7 @@ const OBSERVER_DEBOUNCE_MS = 50;
 // Patterns for relevant GitHub pages (from manifest)
 const RELEVANT_PATH_PATTERNS = [
   /^\/[^/]+\/[^/]+\/pull\/\d+\/files$/,
+  /^\/[^/]+\/[^/]+\/pull\/\d+\/changes$/,
   /\/compare\//,
   /\/commits\//,
   /\/commit\//,
@@ -40,7 +41,7 @@ function isGitHubSite() {
 function isRelevantPage() {
   const path = window.location.pathname;
   const result =
-    (path.includes('/pull/') && path.includes('/files')) ||
+    (path.includes('/pull/') && (path.includes('/files') || path.includes('/changes'))) ||
     path.includes('/compare/') ||
     path.includes('/commits/') ||
     path.includes('/commit/');

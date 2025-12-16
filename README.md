@@ -8,7 +8,7 @@
 
 ### About
 
-Git Well Soon is a Chrome extension (version 2.0.0.0) that automatically persists the 'Hide whitespace changes' setting when reviewing pull requests on GitHub and GitHub Enterprise instances.
+Git Well Soon is a Chrome extension (version 2.1.0.0) that automatically persists the 'Hide whitespace changes' setting when reviewing pull requests on GitHub and GitHub Enterprise instances.
 
 The name is cheeky way of saying I hope GitHub will implement this feature themselves and make my extension obsolete, Git Well Soon!
 
@@ -22,7 +22,7 @@ The name is cheeky way of saying I hope GitHub will implement this feature thems
 
 ### How It Works
 
-When you navigate to a pull request page with the `/files` view on GitHub or GitHub Enterprise, the extension:
+When you navigate to a pull request page with the `/files` or `/changes` view on GitHub or GitHub Enterprise, the extension:
 
 1. Detects if you're on a GitHub pull request page
 2. Checks if the whitespace parameter is already set
@@ -36,7 +36,7 @@ When you navigate to a pull request page with the `/files` view on GitHub or Git
   - Required: `storage` (enables saving your custom hosts in `chrome.storage.sync` under `extraHosts`).
   - Optional host origins (requested at runtime when you add a host via the popup).
   - Optional: `tabs` (requested from the popup only if you enable it; used to prefill the input with the active tab’s host and to auto-reload the active tab after enabling Tabs or after add/remove of a host). No background/service worker and no scripting permission.
-- Content script scope: Runs on GitHub and, once granted, on your enterprise host(s) for PR files, compare, commits, and commit pages. The logic is gated by an allowlist (`github.com` and typical GitHub-like hosts by default; your custom hosts are matched from `extraHosts`).
+- Content script scope: Runs on GitHub and, once granted, on your enterprise host(s) for PR files/changes, compare, commits, and commit pages. The logic is gated by an allowlist (`github.com` and typical GitHub-like hosts by default; your custom hosts are matched from `extraHosts`).
 - Popup behavior:
   - Add/remove hosts; host list updates immediately; clear button always visible; input can prefill from the active tab if Tabs permission is granted.
   - If the Chrome permission prompt closes the popup, the pending add is finalized upon reopening (no second click).
@@ -91,9 +91,9 @@ Steps:
 - Accept the permission prompt. If the Chrome permission prompt closes the popup, just reopen it; the host will finalize automatically.
 - If you enable Tabs permission, the current tab will auto-reload after granting.
 
-4. Navigate to the simulated PR files URL
+4. Navigate to the simulated PR files or changes URL
 
-- Visit: `https://1234567890.ngrok-free.app/owner/repo/pull/123/files`
+- Visit: `https://1234567890.ngrok-free.app/owner/repo/pull/123/files` or `https://1234567890.ngrok-free.app/owner/repo/pull/123/changes`
 - The extension should append `?w=1` to the URL automatically.
 
 What to verify:

@@ -155,6 +155,20 @@ describe('Git Well Soon Extension E2E Tests', () => {
     expect(url.searchParams.get('w')).toBe('1');
   });
 
+  test('should add whitespace parameter to PR changes view', async () => {
+    const testChangesUrl = 'https://github.com/mui/material-ui/pull/45606/changes';
+    await page.goto(testChangesUrl, { waitUntil: 'networkidle0' });
+
+    await new Promise((r) => setTimeout(r, 2000));
+
+    // Get the current URL
+    const currentUrl = page.url();
+
+    // Verify whitespace parameter was added
+    const url = new URL(currentUrl);
+    expect(url.searchParams.get('w')).toBe('1');
+  });
+
   test('should not modify arbitrary hosts without permission', async () => {
     // Preflight: skip test if network not available
     let online = true;
