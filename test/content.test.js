@@ -101,6 +101,14 @@ describe('isRelevantPage', () => {
     expect(isRelevantPage()).toBe(true);
   });
 
+  it('should return true for pull request changes page', () => {
+    Object.defineProperty(window, 'location', {
+      value: new URL('https://github.com/owner/repo/pull/123/changes'),
+      writable: true,
+    });
+    expect(isRelevantPage()).toBe(true);
+  });
+
   it('should return false for non-relevant pages', () => {
     Object.defineProperty(window, 'location', {
       value: new URL('https://github.com/issues/123'),
@@ -199,5 +207,14 @@ describe('addWhitespaceParam', () => {
       writable: true,
     });
     expect(() => addWhitespaceParam()).not.toThrow();
+  });
+
+  it('should add whitespace parameter for /changes URL', () => {
+    Object.defineProperty(window, 'location', {
+      value: new URL('https://github.com/owner/repo/pull/123/changes'),
+      writable: true,
+    });
+    addWhitespaceParam();
+    expect(window.history.replaceState).toHaveBeenCalled();
   });
 });

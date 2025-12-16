@@ -30,6 +30,16 @@ Testing
 
 ---
 
+## [2.1.0] - 2025-01-XX
+
+Added
+- Support for GitHub's new `/changes` URL pattern for pull request file changes preview (in addition to existing `/files` pattern)
+
+Fixed
+- Extension now activates on both `/files` and `/changes` pull request URLs
+
+---
+
 ## [2.0.0] - 2025-10-03
 
 Added
