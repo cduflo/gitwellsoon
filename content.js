@@ -85,13 +85,14 @@ function updateLink(link) {
 }
 
 /**
- * Sets up a MutationObserver that is only active on relevant pages.
- * Disconnects the observer on navigation to non-relevant pages.
+ * Sets up a MutationObserver to detect SPA navigation and dynamically added links.
+ * Always observes, even on non-relevant pages, so it can detect GitHub's in-page
+ * navigation from tabs like Conversation/Commits to the Files Changed tab.
  * Debounces the callback to reduce performance impact.
  */
 function setupRelevantPageObserver() {
   addWhitespaceParam();
-  let oldHref = document.location.href;
+  let oldHref = window.location.href;
   const body = document.querySelector('body');
   let observerTimeout = null;
   let observer = null;
@@ -105,18 +106,13 @@ function setupRelevantPageObserver() {
       if (observerTimeout) clearTimeout(observerTimeout);
       observerTimeout = setTimeout(() => {
         log('MutationObserver callback', mutations.length, 'mutations');
-        if (oldHref !== document.location.href) {
-          oldHref = document.location.href;
-          log('URL changed', document.location.href);
+        if (oldHref !== window.location.href) {
+          oldHref = window.location.href;
+          log('URL changed', window.location.href);
           addWhitespaceParam();
-          // Only observe if new page is relevant
-          if (!isRelevantPage()) {
-            observer.disconnect();
-            observer = null;
-            log('Observer disconnected (irrelevant page)');
-            return;
-          }
         }
+        // Only process added links on relevant pages
+        if (!isRelevantPage()) return;
         for (const mutation of mutations) {
           for (const node of mutation.addedNodes) {
             if (node.nodeType === 1) {
@@ -136,10 +132,10 @@ function setupRelevantPageObserver() {
         }
       }, OBSERVER_DEBOUNCE_MS);
     });
-    if (isRelevantPage()) {
-      observer.observe(body, { childList: true, subtree: true });
-      log('Observer started (relevant page)');
-    }
+    // Always observe, even on non-relevant pages, so we can detect
+    // SPA navigation (e.g. Conversation tab -> Files Changed tab)
+    observer.observe(body, { childList: true, subtree: true });
+    log('Observer started');
   }
 
   startObserver();
@@ -263,5 +259,9 @@ if (typeof module !== 'undefined' && module.exports) {
     isGitHubSite,
     isRelevantPage,
     addWhitespaceParam,
+    setupRelevantPageObserver,
+    interceptLinkClicks,
+    updateLink,
+    isRelevantLink,
   };
 }
