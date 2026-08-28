@@ -1,100 +1,149 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 
-const EXTENSION_PATH = path.join(__dirname, '..'); // point to project root (extension directory)
+const EXTENSION_PATH = path.join(__dirname, '..'); // project root (extension directory)
 const TEST_PR_URL = 'https://github.com/mui/material-ui/pull/45606/files';
 const TEST_NON_PR_URL = 'https://github.com/mui/material-ui/pull/45606';
 
 let browser;
 let page;
+let extensionId;
 
-beforeEach(async () => {
-  browser = await puppeteer.launch({
+function launch() {
+  return puppeteer.launch({
     headless: false,
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--enable-logging',
-      '--v=1',
     ],
-    // Don't disable extensions and allow them to load properly
     ignoreDefaultArgs: ['--disable-extensions', '--enable-automation'],
   });
+}
 
-  // Wait for extension to be loaded
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Create a new page
-  page = await browser.newPage();
-
-  // Add console logging for debugging
-  page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
-  page.on('pageerror', (error) => console.log('PAGE ERROR:', error.message));
-  page.on('error', (error) => console.log('ERROR:', error.message));
-
-  // Enable verbose logging for extension background page
-  const targets = await browser.targets();
-  const extensionTarget = targets.find(
-    (target) =>
-      target.type() === 'service_worker' &&
-      target._targetInfo.title === 'Git Well Soon'
-  );
-  if (extensionTarget) {
-    const extensionPage = await extensionTarget.worker();
-    extensionPage.on('console', (msg) =>
-      console.log('EXTENSION LOG:', msg.text())
-    );
+/**
+ * The extension's MV3 service worker target (3.1 added worker.js). Polled
+ * rather than waitForTarget'd: the worker starts a moment after launch and
+ * idles out again, so we look at the live target list each time.
+ */
+async function workerTarget(b, timeoutMs = 20000) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const found = b
+      .targets()
+      .find((t) => t.type() === 'service_worker' && t.url().endsWith('/worker.js'));
+    if (found) return found;
+    if (Date.now() > deadline) {
+      throw new Error(
+        'extension service worker target not found; targets: ' +
+          JSON.stringify(b.targets().map((t) => `${t.type()} ${t.url()}`))
+      );
+    }
+    await new Promise((r) => setTimeout(r, 250));
   }
+}
+
+const extensionIdOf = (target) => new URL(target.url()).host;
+
+async function newPage(b) {
+  const p = await b.newPage();
+  p.on('pageerror', (error) => console.log('PAGE ERROR:', error.message));
+  return p;
+}
+
+beforeAll(async () => {
+  browser = await launch();
+  // Capture the id while the worker is definitely alive: MV3 service workers
+  // idle out after ~30s, so later describes can no longer find the target.
+  extensionId = extensionIdOf(await workerTarget(browser));
+});
+
+afterAll(async () => {
+  if (browser) await browser.close();
+  browser = undefined;
+});
+
+beforeEach(async () => {
+  page = await newPage(browser);
 });
 
 afterEach(async () => {
-  if (browser) {
-    await browser.close();
-  }
-  browser = undefined;
+  if (page && !page.isClosed()) await page.close();
   page = undefined;
 });
 
-describe('Git Well Soon Extension E2E Tests', () => {
-  beforeEach(async () => {
-    // Add console logging for debugging
-    page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
-    page.on('pageerror', (error) => console.log('PAGE ERROR:', error.message));
-    page.on('error', (error) => console.log('ERROR:', error.message));
+// --- 3.1 permission-surface checks (see docs/V-CHECKLIST.md) ---
+// Declared first so they run while the service worker is still alive.
 
-    // Enable verbose logging for extension background page
-    const targets = await browser.targets();
-    const extensionTarget = targets.find(
-      (target) =>
-        target.type() === 'service_worker' &&
-        target._targetInfo.title === 'Git Well Soon'
-    );
-    if (extensionTarget) {
-      const extensionPage = await extensionTarget.worker();
-      extensionPage.on('console', (msg) =>
-        console.log('EXTENSION LOG:', msg.text())
-      );
-    }
+describe('3.1 service worker and dynamic registration', () => {
+  test('the MV3 service worker loads with only scripting + activeTab', async () => {
+    const worker = await (await workerTarget(browser)).worker();
 
-    // Wait for extension to be loaded
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const info = await worker.evaluate(async () => ({
+      permissions: (await chrome.permissions.getAll()).permissions,
+      registered: (await chrome.scripting.getRegisteredContentScripts()).map((s) => s.id),
+      hasPopupLib: typeof PopupLib === 'object',
+    }));
+
+    expect(info.permissions).toEqual(expect.arrayContaining(['scripting', 'activeTab']));
+    expect(info.permissions).not.toContain('storage');
+    expect(info.permissions).not.toContain('tabs');
+    // importScripts('popup-lib.js') gives the worker the shared classifier.
+    expect(info.hasPopupLib).toBe(true);
+    // No custom origin is granted in this profile, so nothing is registered.
+    expect(info.registered).toEqual([]);
   });
 
-  test('should add whitespace parameter to PR files view', async () => {
-    // Navigate to the test PR
-    await page.goto(TEST_PR_URL, { waitUntil: 'networkidle0' });
+  test('registration is derived from granted origins only', async () => {
+    const worker = await (await workerTarget(browser)).worker();
 
-    // Wait for extension to process
+    const hosts = await worker.evaluate(() => PopupLib.listGrantedHosts(chrome));
+    expect(hosts).toEqual([]);
+
+    // The registration spec the worker and the popup share.
+    const spec = await worker.evaluate(() => PopupLib.registrationFor('ghe.example.com'));
+    expect(spec).toMatchObject({
+      id: 'gws-ghe.example.com',
+      js: ['granted-marker.js', 'content.js'],
+      runAt: 'document_start',
+      persistAcrossSessions: true,
+    });
+    expect(spec.matches).toContain('https://ghe.example.com/*/*/pull/*');
+  });
+});
+
+describe('3.1 popup in real Chrome', () => {
+  test('renders the non-https state and an empty host list', async () => {
+    await page.goto(`chrome-extension://${extensionId}/popup.html`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await page.waitForFunction(
+      () => document.getElementById('status').textContent !== '',
+      { timeout: 5000 }
+    );
+
+    const view = await page.evaluate(() => ({
+      status: document.getElementById('status').textContent,
+      actionHidden: document.getElementById('action').hidden,
+      rows: document.querySelectorAll('#list li').length,
+      headerHidden: document.getElementById('hosts-header').hidden,
+    }));
+
+    // The popup's own chrome-extension:// tab is not https, i.e. state 1.
+    expect(view.status).toBe('Works on GitHub PR diff pages.');
+    expect(view.actionHidden).toBe(true);
+    expect(view.rows).toBe(0);
+    expect(view.headerHidden).toBe(true);
+  });
+});
+
+describe('Git Well Soon Extension E2E Tests', () => {
+  test('should add whitespace parameter to PR files view', async () => {
+    await page.goto(TEST_PR_URL, { waitUntil: 'networkidle0' });
     await new Promise((r) => setTimeout(r, 2000));
 
-    // Get the current URL
-    const currentUrl = page.url();
-
-    // Verify whitespace parameter was added
-    const url = new URL(currentUrl);
-    expect(url.searchParams.get('w')).toBe('1');
+    expect(new URL(page.url()).searchParams.get('w')).toBe('1');
   });
 
   test('should not modify URL if whitespace parameter already exists', async () => {
@@ -102,99 +151,108 @@ describe('Git Well Soon Extension E2E Tests', () => {
     await page.goto(urlWithParam, { waitUntil: 'networkidle0' });
     await new Promise((r) => setTimeout(r, 2000));
 
-    const currentUrl = page.url();
-    expect(currentUrl).toBe(urlWithParam);
+    expect(page.url()).toBe(urlWithParam);
   });
 
   test('should handle URL changes within GitHub', async () => {
     await page.goto(TEST_PR_URL, { waitUntil: 'networkidle0' });
     await new Promise((r) => setTimeout(r, 2000));
-
-    let url = new URL(page.url());
-    expect(url.searchParams.get('w')).toBe('1');
+    expect(new URL(page.url()).searchParams.get('w')).toBe('1');
 
     await page.goto(
       'https://github.com/mui/material-ui/pull/45606/files/specific-commit',
       { waitUntil: 'networkidle0' }
     );
     await new Promise((r) => setTimeout(r, 2000));
-
-    url = new URL(page.url());
-    expect(url.searchParams.get('w')).toBe('1');
+    expect(new URL(page.url()).searchParams.get('w')).toBe('1');
   });
 
   test('should not modify non-relevant GitHub pages', async () => {
     await page.goto(TEST_NON_PR_URL, { waitUntil: 'networkidle0' });
     await new Promise((r) => setTimeout(r, 2000));
 
-    const currentUrl = page.url();
-    expect(currentUrl).toBe(TEST_NON_PR_URL);
+    expect(page.url()).toBe(TEST_NON_PR_URL);
   });
 
   test('should add whitespace parameter to PR files view, on SPA navigation', async () => {
     await page.goto(TEST_NON_PR_URL, { waitUntil: 'networkidle0' });
-
     await new Promise((r) => setTimeout(r, 2000));
 
     await page.waitForSelector('a[href*="/files"]', { timeout: 15000 });
     await page.click('a[href*="/files"]');
 
-    // wait until URL includes /files and the extension injects w=1
-    await page.waitForFunction(() => {
-      try {
-        const u = new URL(window.location.href);
-        return u.pathname.includes('/files') && u.searchParams.get('w') === '1';
-      } catch (_) { return false; }
-    }, { timeout: 15000 });
+    await page.waitForFunction(
+      () => {
+        try {
+          const u = new URL(window.location.href);
+          return u.pathname.includes('/files') && u.searchParams.get('w') === '1';
+        } catch (_) {
+          return false;
+        }
+      },
+      { timeout: 15000 }
+    );
 
-    // Get the current URL
-    const currentUrl = page.url();
-
-    // Verify whitespace parameter was added
-    const url = new URL(currentUrl);
-    expect(url.searchParams.get('w')).toBe('1');
+    expect(new URL(page.url()).searchParams.get('w')).toBe('1');
   });
 
   test('should add whitespace parameter to PR changes view', async () => {
-    const testChangesUrl = 'https://github.com/mui/material-ui/pull/45606/changes';
-    await page.goto(testChangesUrl, { waitUntil: 'networkidle0' });
-
+    await page.goto('https://github.com/mui/material-ui/pull/45606/changes', {
+      waitUntil: 'networkidle0',
+    });
     await new Promise((r) => setTimeout(r, 2000));
 
-    // Get the current URL
-    const currentUrl = page.url();
+    expect(new URL(page.url()).searchParams.get('w')).toBe('1');
+  });
 
-    // Verify whitespace parameter was added
-    const url = new URL(currentUrl);
-    expect(url.searchParams.get('w')).toBe('1');
+  test('shows no pin nudge on a built-in GitHub host', async () => {
+    await page.goto(TEST_PR_URL, { waitUntil: 'networkidle0' });
+    await new Promise((r) => setTimeout(r, 2000));
+
+    const nudges = await page.evaluate(
+      () => document.querySelectorAll('#gws-pin-nudge').length
+    );
+    expect(nudges).toBe(0);
   });
 
   test('should not modify arbitrary hosts without permission', async () => {
-    // Preflight: skip test if network not available
-    let online = true;
     try {
-      await page.goto('https://example.com', { waitUntil: 'domcontentloaded', timeout: 8000 });
+      await page.goto('https://example.com/owner/repo/pull/123/files', {
+        waitUntil: 'domcontentloaded',
+        timeout: 45000,
+      });
     } catch (e) {
-      online = false;
-    }
-    if (!online) {
-      console.warn('Skipping non-permission host test due to offline/unreachable example.com');
+      console.warn('Skipping example.com check: host unreachable');
       return;
     }
-
-    // Navigate to a GitHub-like path on example.com, which is not granted
-    try {
-      await page.goto('https://example.com/owner/repo/pull/123/files', { waitUntil: 'domcontentloaded', timeout: 45000 });
-    } catch (e) {
-      console.warn('Skipping path-specific example.com navigation due to timeout/unreachable');
-      return;
-    }
-
     await new Promise((r) => setTimeout(r, 2000));
 
-    const currentUrl = page.url();
-    const url = new URL(currentUrl);
+    const url = new URL(page.url());
     expect(url.hostname).toContain('example.com');
     expect(url.searchParams.get('w')).toBeNull();
   }, 60000);
+});
+
+// V-5: an extension reload followed by an immediate navigation must not drop
+// the broad-match cohort. Runs in its own browser because it restarts the
+// extension out from under every existing target.
+describe('V-5 extension reload then immediate navigation', () => {
+  test('w=1 is still applied on the first page load after a reload', async () => {
+    const b = await launch();
+    try {
+      const worker = await (await workerTarget(b)).worker();
+      await worker.evaluate(() => chrome.runtime.reload()).catch(() => {});
+
+      // No settling delay: navigate as soon as the browser will let us.
+      const p = await newPage(b);
+      await p.goto(TEST_PR_URL, { waitUntil: 'networkidle0' });
+      await p.waitForFunction(
+        () => new URL(window.location.href).searchParams.get('w') === '1',
+        { timeout: 20000 }
+      );
+      expect(new URL(p.url()).searchParams.get('w')).toBe('1');
+    } finally {
+      await b.close();
+    }
+  }, 90000);
 });
