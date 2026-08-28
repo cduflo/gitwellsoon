@@ -1,58 +1,37 @@
-(function(){
-  function parseHostInput(input) {
-    const s = (input || '').trim().toLowerCase();
-    if (!s) return { error: 'Enter a full https URL, e.g., https://github.company.com' };
-    if (!/^https:\/\//.test(s)) {
-      return { error: 'Enter a full URL starting with https:// (e.g., https://github.company.com)' };
+(function () {
+  // Paths that matter for whitespace hiding, mirrored from manifest.json's
+  // broad match patterns. Used for dynamic registration on granted hosts.
+  const DIFF_PATHS = ['pull', 'compare', 'commits', 'commit'];
+
+  function isBuiltInHost(host) {
+    const h = String(host || '').toLowerCase();
+    return h === 'github.com' || h.endsWith('.github.com') || h.endsWith('.ghe.com');
+  }
+
+  // The legacy heuristic (content.js isGitHubSite) — a host that already works
+  // without an explicit grant, and so is a candidate for the pin nudge.
+  function isGitHubLikeHost(host) {
+    const h = String(host || '').toLowerCase();
+    return h === 'github.com' || h.includes('ghe.') || h.includes('github.') || /git\..*/.test(h);
+  }
+
+  function hostFromOrigin(origin) {
+    if (typeof origin !== 'string' || !origin.startsWith('https://')) return '';
+    // Only skip when the hostname itself is a wildcard (e.g., https://*/* or https://%2A/*)
+    const mHost = origin.match(/^https:\/\/([^/]+)/i);
+    const rawHost = mHost ? mHost[1] : '';
+    if (!rawHost || rawHost === '*' || rawHost.toLowerCase() === '%2a') return '';
+    let host = '';
+    try {
+      host = new URL(origin).hostname;
+    } catch (e) {
+      host = rawHost;
     }
     try {
-      const url = new URL(s);
-      if (url.protocol !== 'https:') {
-        return { error: 'Only https hosts are supported.' };
-      }
-      const host = url.hostname;
-      if (!host || !host.includes('.')) {
-        return { error: 'Enter a full hostname, e.g., github.company.com' };
-      }
-      return { host };
-    } catch {
-      return { error: 'Invalid URL. Try something like https://github.company.com' };
-    }
-  }
-
-  function pGet(chromeLike, defaults) {
-    return new Promise((resolve) => {
-      try {
-        const ret = chromeLike.storage.sync.get(defaults, (res) => resolve(res));
-        if (ret && typeof ret.then === 'function') {
-          ret.then(resolve).catch(() => resolve(defaults));
-        }
-      } catch (_) {
-        resolve(defaults);
-      }
-    });
-  }
-
-  function pSet(chromeLike, payload) {
-    return new Promise((resolve) => {
-      try {
-        const ret = chromeLike.storage.sync.set(payload, () => resolve());
-        if (ret && typeof ret.then === 'function') {
-          ret.then(() => resolve()).catch(() => resolve());
-        }
-      } catch (_) {
-        resolve();
-      }
-    });
-  }
-
-  async function getHosts(chromeLike) {
-    const { extraHosts = [] } = await pGet(chromeLike, { extraHosts: [] });
-    return Array.isArray(extraHosts) ? extraHosts : [];
-  }
-
-  async function setHosts(chromeLike, list) {
-    await pSet(chromeLike, { extraHosts: list });
+      host = decodeURIComponent(host);
+    } catch (_) {}
+    if (!host || host.includes('%') || host.includes('*')) return '';
+    return host;
   }
 
   function pGetAll(chromeLike) {
@@ -65,40 +44,10 @@
     });
   }
 
+  // Granted custom hosts: https origins with a real hostname, minus built-ins.
   async function listGrantedHosts(chromeLike) {
     const { origins = [] } = await pGetAll(chromeLike);
-    const hosts = [];
-    for (const origin of origins) {
-      try {
-        if (!origin.startsWith('https://')) continue;
-
-        // Only skip when the hostname itself is a wildcard (e.g., https://*/* or https://%2A/*)
-        const mHost = origin.match(/^https:\/\/([^/]+)/i);
-        const rawHost = mHost ? mHost[1] : '';
-        if (!rawHost) continue;
-        if (rawHost === '*' || rawHost.toLowerCase() === '%2a') continue;
-
-        let host = '';
-        try {
-          const u = new URL(origin);
-          host = u.hostname;
-        } catch (e) {
-          const m = origin.match(/^https:\/\/([^/]+)/i);
-          host = m ? m[1] : '';
-        }
-        if (!host) continue;
-        try {
-          host = decodeURIComponent(host);
-        } catch (_) {}
-        if (!host || host.includes('%') || host.includes('*')) continue;
-
-        // Exclude built-in GitHub/GHE hosts from the list; only show user-granted hosts
-        const builtIn = host === 'github.com' || host.endsWith('.github.com') || host.endsWith('.ghe.com');
-        if (builtIn) continue;
-        hosts.push(host);
-      } catch (_) {}
-    }
-    // Deduplicate
+    const hosts = origins.map(hostFromOrigin).filter((h) => h && !isBuiltInHost(h));
     return Array.from(new Set(hosts)).sort();
   }
 
@@ -112,25 +61,39 @@
     });
   }
 
-  async function syncHostsWithPermissions(chromeLike) {
-    const current = await getHosts(chromeLike);
-    const allowed = [];
-    for (const h of current) {
-      // eslint-disable-next-line no-await-in-loop
-      if (await containsPermission(chromeLike, h)) allowed.push(h);
-    }
-    if (allowed.length !== current.length) {
-      await setHosts(chromeLike, allowed);
-    }
-    return allowed;
+  // --- Dynamic content-script registration (shared by worker.js and popup.js) ---
+  const scriptId = (host) => `gws-${host}`;
+  const matchesForHost = (host) => DIFF_PATHS.map((p) => `https://${host}/*/*/${p}/*`);
+  const registrationFor = (host) => ({
+    id: scriptId(host),
+    matches: matchesForHost(host),
+    js: ['granted-marker.js', 'content.js'],
+    runAt: 'document_start',
+    persistAcrossSessions: true,
+  });
+
+  async function unregisterHosts(chromeLike, hosts) {
+    try {
+      await chromeLike.scripting.unregisterContentScripts(
+        hosts ? { ids: hosts.map(scriptId) } : undefined
+      );
+    } catch (_) {}
+  }
+
+  async function registerHosts(chromeLike, hosts) {
+    if (!hosts || !hosts.length) return [];
+    await unregisterHosts(chromeLike, hosts); // keep re-runs idempotent
+    try {
+      await chromeLike.scripting.registerContentScripts(hosts.map(registrationFor));
+    } catch (_) {}
+    return hosts;
   }
 
   function queryActiveTab(chromeLike) {
     return new Promise((resolve) => {
       try {
         chromeLike.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          const tab = tabs && tabs[0];
-          resolve(tab || null);
+          resolve((tabs && tabs[0]) || null);
         });
       } catch (_) {
         resolve(null);
@@ -154,20 +117,21 @@
   }
 
   const api = {
-    parseHostInput,
-    getHosts,
-    setHosts,
+    isBuiltInHost,
+    isGitHubLikeHost,
+    hostFromOrigin,
+    listGrantedHosts,
     containsPermission,
-    syncHostsWithPermissions,
+    scriptId,
+    matchesForHost,
+    registrationFor,
+    registerHosts,
+    unregisterHosts,
     queryActiveTab,
     scheduleReloadIfActiveMatches,
-    listGrantedHosts,
   };
 
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = api;
-  }
-  if (typeof window !== 'undefined') {
-    window.PopupLib = api;
-  }
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  // window in the popup, self in the service worker (importScripts).
+  if (typeof globalThis !== 'undefined') globalThis.PopupLib = api;
 })();
