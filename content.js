@@ -52,7 +52,7 @@
   }
 
   /**
-   * May this injection act on the page at all?
+   * May this injection act on the page, judged from this world alone?
    * Read LAZILY — granted-marker.js is injected alongside this file at
    * document_start and can lose the race against the manifest-matched copy,
    * so window.__gwsGranted must never be latched at script-evaluation time.
@@ -60,6 +60,58 @@
   function isHostEnabled() {
     if (window.__gwsGranted === true) return true;
     return isGitHubSite();
+  }
+
+  /**
+   * Ask the worker whether this host is covered by any grant we hold. A
+   * manifest-injected copy carries no marker and cannot read the permission
+   * list itself, so without this a grant on corp.example would no longer cover
+   * code.corp.example — a silent regression against 2.x. Resolves false if the
+   * worker cannot be reached, which falls back to heuristic-only behaviour.
+   */
+  function askWorkerGranted() {
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = (value) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+      try {
+        const ret = chrome.runtime.sendMessage(
+          { type: 'gws-host-check', host: window.location.hostname },
+          (res) => {
+            if (chrome.runtime && chrome.runtime.lastError) return done(false);
+            done(!!(res && res.granted));
+          }
+        );
+        if (ret && typeof ret.then === 'function') {
+          ret.then(
+            (res) => done(!!(res && res.granted)),
+            () => done(false)
+          );
+        }
+      } catch (_) {
+        done(false);
+      }
+    });
+  }
+
+  /**
+   * Decide whether to act, and whether the host is genuinely granted (which the
+   * nudge needs — see maybeShowPinNudge). The worker is consulted only when its
+   * answer could change something: to rescue a host the heuristic rejects, or
+   * to suppress a nudge on a host that is already covered by a grant.
+   */
+  async function resolveActivation() {
+    if (window.__gwsGranted === true) return { enabled: true, granted: true };
+    if (isBuiltInHost(window.location.hostname)) return { enabled: true, granted: false };
+
+    const heuristic = isGitHubSite();
+    const nudgeCandidate = heuristic && isRelevantPage() && !nudgeDismissed();
+    let granted = false;
+    if (!heuristic || nudgeCandidate) granted = await askWorkerGranted();
+    return { enabled: granted || heuristic, granted };
   }
 
   function isRelevantPage() {
@@ -268,9 +320,16 @@
    * Renders one dismissible banner when ALL of: no explicit grant, the legacy
    * heuristic matched, the host is not a built-in GitHub host, the page is a
    * diff view, and the banner was not already dismissed on this domain.
+   *
+   * `grantedByWorker` is what keeps it honest. The marker only says "this
+   * execution came from a dynamic registration"; a parent-domain or wildcard
+   * grant covers the host without registering it under this exact name, and
+   * telling those users to pin a permission they already hold would burn the
+   * one dismissal they get.
    */
-  function maybeShowPinNudge() {
+  function maybeShowPinNudge(grantedByWorker) {
     if (window.__gwsGranted === true) return;
+    if (grantedByWorker === true) return;
     if (isBuiltInHost(window.location.hostname)) return;
     if (!isGitHubSite()) return;
     if (!isRelevantPage()) return;
@@ -307,13 +366,17 @@
   }
 
   window.addEventListener('load', () => {
-    if (!isHostEnabled()) {
-      log('Current host is neither granted nor GitHub-like; exiting');
-      return;
-    }
-    interceptLinkClicks();
-    setupRelevantPageObserver();
-    maybeShowPinNudge();
+    resolveActivation()
+      .then(({ enabled, granted }) => {
+        if (!enabled) {
+          log('Current host is neither granted nor GitHub-like; exiting');
+          return;
+        }
+        interceptLinkClicks();
+        setupRelevantPageObserver();
+        maybeShowPinNudge(granted);
+      })
+      .catch((e) => log('Activation failed:', e));
   });
 
   // Export for testing
@@ -323,6 +386,7 @@
       isBuiltInHost,
       isGitHubSite,
       isHostEnabled,
+      resolveActivation,
       isRelevantPage,
       addWhitespaceParam,
       maybeShowPinNudge,

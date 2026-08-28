@@ -48,6 +48,19 @@
         color: #fff;
         border: none;
       }
+      .msg {
+        margin-top: 8px;
+        font-size: 12px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: #fcf7e6;
+      }
+      .msg.error {
+        background: #ffeef0;
+        color: #86181d;
+        border-color: #ffdce0;
+      }
       #hosts-header {
         color: var(--muted);
         font-size: 12px;
@@ -101,6 +114,7 @@
     <div class="card">
       <div id="status" aria-live="polite"></div>
       <button id="action" hidden></button>
+      <div id="msg" class="msg" aria-live="polite" hidden></div>
     </div>
 
     <div class="card">

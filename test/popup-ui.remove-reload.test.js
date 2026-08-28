@@ -11,27 +11,23 @@ const PopupLib = require('../popup-lib.js');
 const HOST = 'abc-github.cloud.xyz';
 
 describe('popup Remove row triggers revoke, unregister and reload', () => {
-  let reloadSpy;
-
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetModules();
     require('./mock-extension-apis.js');
     global.chrome.__mockState.reset();
     document.body.innerHTML = `
       <div id="status"></div>
       <button id="action" hidden></button>
+      <div id="msg" hidden></div>
       <div id="hosts-header" hidden></div>
       <ul id="list"></ul>
     `;
-    global.chrome.tabs.query.mockImplementation((q, cb) =>
-      cb([{ id: 321, url: `https://${HOST}/owner/repo/pull/1/files` }])
-    );
-    reloadSpy = jest.spyOn(PopupLib, 'scheduleReloadIfActiveMatches').mockResolvedValue(true);
+    global.chrome.__mockState.tabState.tabs = [
+      { id: 321, url: `https://${HOST}/owner/repo/pull/1/files` },
+    ];
   });
 
-  afterEach(() => reloadSpy.mockRestore());
-
-  test('remove revokes the origin, unregisters and schedules a reload', async () => {
+  test('remove revokes the origin, unregisters and reloads the matching tab', async () => {
     global.chrome.__mockState.permState.origins.add(`https://${HOST}/*`);
     await PopupLib.registerHosts(global.chrome, [HOST]);
 
@@ -48,7 +44,7 @@ describe('popup Remove row triggers revoke, unregister and reload', () => {
 
     expect(global.chrome.__mockState.permState.origins.has(`https://${HOST}/*`)).toBe(false);
     expect(global.chrome.__mockState.scriptState.registered).toEqual([]);
-    expect(reloadSpy).toHaveBeenCalledWith(global.chrome, HOST, 1000);
+    expect(global.chrome.__mockState.tabState.reloaded).toContain(321);
     expect(document.querySelectorAll('#list li')).toHaveLength(0);
   });
 });

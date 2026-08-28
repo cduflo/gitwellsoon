@@ -30,6 +30,25 @@ function resetWindow(href) {
   try {
     window.localStorage.clear();
   } catch (_) {}
+  if (global.chrome && global.chrome.__mockState) global.chrome.__mockState.reset();
+}
+
+/**
+ * Stand in for the worker's gws-host-check reply.
+ * `answer` is a boolean, or 'unreachable' to simulate a dead worker.
+ */
+function mockWorkerGrant(answer) {
+  global.chrome.runtime.sendMessage = jest.fn((message, cb) => {
+    if (answer === 'unreachable') {
+      // Chrome surfaces this as lastError plus an undefined response.
+      if (typeof cb === 'function') cb(undefined);
+      return Promise.reject(new Error('Could not establish connection'));
+    }
+    const res = { granted: !!answer };
+    if (typeof cb === 'function') cb(res);
+    return Promise.resolve(res);
+  });
+  return global.chrome.runtime.sendMessage;
 }
 
 /** Require a fresh copy of content.js. Returns its exports. */
@@ -38,13 +57,17 @@ function loadContent() {
   return require('../content.js');
 }
 
-/** Fire the window load event that content.js defers all decisions to. */
+/**
+ * Fire the window load event that content.js defers all decisions to, then let
+ * the worker round-trip settle. Await it.
+ */
 function fireLoad() {
   window.dispatchEvent(new Event('load'));
+  return new Promise((r) => setTimeout(r, 0));
 }
 
 function nudgeEl() {
   return document.getElementById('gws-pin-nudge');
 }
 
-module.exports = { resetWindow, loadContent, fireLoad, nudgeEl };
+module.exports = { resetWindow, mockWorkerGrant, loadContent, fireLoad, nudgeEl };

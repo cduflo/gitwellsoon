@@ -16,19 +16,38 @@ const pPermissions = (method, req) =>
     }
   });
 
+function setMsg(text, kind) {
+  const el = $('msg');
+  if (!el) return;
+  el.textContent = text || '';
+  el.className = 'msg' + (kind ? ' ' + kind : '');
+  el.hidden = !text;
+}
+
 async function enableHost(host) {
-  const granted = await pPermissions('request', { origins: [`https://${host}/*`] });
-  if (granted) {
-    await PopupLib.registerHosts(chrome, [host]);
-    await PopupLib.scheduleReloadIfActiveMatches(chrome, host, 1000);
+  setMsg('');
+  const granted = await pPermissions('request', { origins: [PopupLib.originForHost(host)] });
+  if (!granted) {
+    // Without this the popup re-rendered pixel-identically and the click read
+    // as a dead button.
+    setMsg('Permission not granted — click Enable to try again.', 'error');
+    await refresh();
+    return;
   }
+  await PopupLib.registerHosts(chrome, [host]);
+  await PopupLib.reloadActiveTabIfMatches(chrome, host);
   await refresh();
 }
 
 async function disableHost(host) {
-  await pPermissions('remove', { origins: [`https://${host}/*`] });
-  await PopupLib.unregisterHosts(chrome, [host]);
-  await PopupLib.scheduleReloadIfActiveMatches(chrome, host, 1000);
+  setMsg('');
+  // Revoke the pattern we actually hold: removing a narrower one than was
+  // granted (e.g. the host under a https://*.corp.example/* grant) is a no-op.
+  const origin = (await PopupLib.originCoveringHost(chrome, host)) || PopupLib.originForHost(host);
+  const removed = await pPermissions('remove', { origins: [origin] });
+  if (!removed) setMsg(`Could not remove permission for ${origin}.`, 'error');
+  await PopupLib.unregisterHosts(chrome, [host, PopupLib.hostFromOrigin(origin)]);
+  await PopupLib.reloadActiveTabIfMatches(chrome, host);
   await refresh();
 }
 
@@ -76,11 +95,11 @@ async function refresh() {
       next.hidden = false;
       next.addEventListener('click', () => disableHost(host));
     } else {
-      // State 4. Heuristic-matched hosts already work in legacy mode, so they
-      // are phrased as a pin — the landing spot for the in-page nudge.
+      // State 4. A heuristic-matched host keeps working with no grant at all,
+      // so Disable cannot switch it off and the popup must not pretend it did.
       const pinnable = PopupLib.isGitHubLikeHost(host);
       statusEl.textContent = pinnable
-        ? `Working here via pattern-matching on ${host}.`
+        ? `✓ Still active on ${host} via pattern-matching — this host matches GitHub-like patterns.`
         : `Not enabled on ${host}.`;
       next.textContent = pinnable ? `Pin permission for ${host}` : `Enable on ${host}`;
       next.hidden = false;
@@ -91,4 +110,4 @@ async function refresh() {
   await renderGrantedHosts(); // state 5
 }
 
-document.addEventListener('DOMContentLoaded', refresh);
+document.addEventListener('DOMContentLoaded', () => refresh());

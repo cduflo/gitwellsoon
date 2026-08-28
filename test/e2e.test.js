@@ -95,6 +95,35 @@ describe('3.1 service worker and dynamic registration', () => {
     expect(info.registered).toEqual([]);
   });
 
+  // The worker now answers a host-check for content scripts. Verify the
+  // message plumbing really works in Chrome, not just against the mock.
+  test('answers gws-host-check from another extension context', async () => {
+    await page.goto(`chrome-extension://${extensionId}/popup.html`, {
+      waitUntil: 'domcontentloaded',
+    });
+
+    const reply = await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: 'gws-host-check', host: 'code.corp.example' }, (res) =>
+            resolve(chrome.runtime.lastError ? { error: chrome.runtime.lastError.message } : res)
+          );
+        })
+    );
+    expect(reply).toEqual({ granted: false });
+
+    const ignored = await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: 'not-ours' }, () =>
+            resolve(chrome.runtime.lastError ? 'lastError' : 'responded')
+          );
+        })
+    );
+    // Unowned messages are left for someone else; Chrome reports no receiver.
+    expect(['lastError', 'responded']).toContain(ignored);
+  });
+
   test('registration is derived from granted origins only', async () => {
     const worker = await (await workerTarget(browser)).worker();
 

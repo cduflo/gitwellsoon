@@ -7,11 +7,17 @@
 // The two injections share one isolated world, so the second execution must be
 // a no-op: no duplicate listeners, no duplicate top-level declarations.
 
-const { resetWindow, loadContent, fireLoad } = require('./content.load-helpers.js');
+const {
+  resetWindow,
+  mockWorkerGrant,
+  loadContent,
+  fireLoad,
+} = require('./content.load-helpers.js');
 
 describe('content.js once-guard', () => {
   beforeEach(() => {
     resetWindow('https://github.company.com/owner/repo/pull/1/files');
+    mockWorkerGrant(false);
   });
 
   test('first execution marks the world and installs its load listener', () => {
@@ -31,11 +37,17 @@ describe('content.js once-guard', () => {
     spy.mockRestore();
   });
 
-  test('a doubly-injected page still applies w=1 exactly once', () => {
+  test('a doubly-injected page still applies w=1 exactly once', async () => {
     loadContent();
     loadContent();
-    fireLoad();
-    expect(window.history.replaceState).toHaveBeenCalledTimes(1);
+    // jsdom dispatches its own window 'load' once per test file, which would
+    // otherwise be counted here. Let it settle, then measure only our dispatch.
+    await new Promise((r) => setTimeout(r, 5));
+    const before = window.history.replaceState.mock.calls.length;
+
+    await fireLoad();
+
+    expect(window.history.replaceState.mock.calls.length - before).toBe(1);
   });
 
   test('re-executing does not throw on top-level redeclaration', () => {

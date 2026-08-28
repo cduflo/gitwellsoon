@@ -8,12 +8,13 @@
 const POPUP_DOM = `
   <div id="status"></div>
   <button id="action" hidden></button>
+  <div id="msg" hidden></div>
   <div id="hosts-header" hidden></div>
   <ul id="list"></ul>
 `;
 
 function setActiveTab(url) {
-  global.chrome.tabs.query.mockImplementation((q, cb) => cb(url ? [{ id: 7, url }] : []));
+  global.chrome.__mockState.tabState.tabs = url ? [{ id: 7, url }] : [];
 }
 
 async function openPopup() {
@@ -71,6 +72,14 @@ describe('popup states', () => {
     expect(actionBtn().textContent).toBe('Disable');
   });
 
+  test('state 3: a wildcard grant covering the tab host also reads as active', async () => {
+    global.chrome.__mockState.permState.origins.add('https://*.corp.example/*');
+    setActiveTab('https://code.corp.example/owner/repo/pull/1/files');
+    await openPopup();
+    expect(statusText()).toBe('✓ Active on code.corp.example');
+    expect(actionBtn().textContent).toBe('Disable');
+  });
+
   test('state 4: ungranted custom host offers Enable', async () => {
     setActiveTab('https://code.corp.example/owner/repo/pull/1/files');
     await openPopup();
@@ -83,6 +92,8 @@ describe('popup states', () => {
     await openPopup();
     expect(actionBtn().hidden).toBe(false);
     expect(actionBtn().textContent).toBe('Pin permission for github.corp.example');
+    // Finding 9: it keeps working without a grant, and must say so.
+    expect(statusText()).toMatch(/pattern-matching/i);
   });
 
   test('state 5: granted hosts are listed with a Remove action, built-ins excluded', async () => {
@@ -100,6 +111,23 @@ describe('popup states', () => {
     ]);
     expect(rows[0].querySelector('button').textContent).toBe('Remove');
     expect(document.getElementById('hosts-header').hidden).toBe(false);
+  });
+
+  test('state 5: a wildcard grant is listed and removable', async () => {
+    global.chrome.__mockState.permState.origins.add('https://*.corp.example/*');
+    setActiveTab('https://github.com/owner/repo/pull/1/files');
+    await openPopup();
+
+    const rows = document.querySelectorAll('#list li');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].querySelector('.host').textContent).toBe('https://*.corp.example');
+
+    rows[0].querySelector('button').click();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(global.chrome.permissions.remove).toHaveBeenCalledWith(
+      { origins: ['https://*.corp.example/*'] },
+      expect.any(Function)
+    );
   });
 
   test('state 5: the list header hides when nothing is granted', async () => {
