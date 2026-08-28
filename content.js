@@ -185,14 +185,8 @@
             oldHref = document.location.href;
             log('URL changed', document.location.href);
             addWhitespaceParam();
-            // Only observe if new page is relevant
-            if (!isRelevantPage()) {
-              observer.disconnect();
-              observer = null;
-              log('Observer disconnected (irrelevant page)');
-              return;
-            }
           }
+          if (!isRelevantPage()) return;
           for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
               if (node.nodeType === 1) {
@@ -212,10 +206,8 @@
           }
         }, OBSERVER_DEBOUNCE_MS);
       });
-      if (isRelevantPage()) {
-        observer.observe(body, { childList: true, subtree: true });
-        log('Observer started (relevant page)');
-      }
+      observer.observe(body, { childList: true, subtree: true });
+      log('Observer started');
     }
 
     startObserver();
