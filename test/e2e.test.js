@@ -156,14 +156,14 @@ describe('3.1 popup in real Chrome', () => {
       status: document.getElementById('status').textContent,
       actionHidden: document.getElementById('action').hidden,
       rows: document.querySelectorAll('#list li').length,
-      headerHidden: document.getElementById('hosts-header').hidden,
+      hostsCardHidden: document.getElementById('hosts-card').hidden,
     }));
 
     // The popup's own chrome-extension:// tab is not https, i.e. state 1.
     expect(view.status).toBe('Works on GitHub PR diff pages.');
     expect(view.actionHidden).toBe(true);
     expect(view.rows).toBe(0);
-    expect(view.headerHidden).toBe(true);
+    expect(view.hostsCardHidden).toBe(true);
   });
 });
 

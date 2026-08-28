@@ -9,8 +9,10 @@ const POPUP_DOM = `
   <div id="status"></div>
   <button id="action" hidden></button>
   <div id="msg" hidden></div>
-  <div id="hosts-header" hidden></div>
-  <ul id="list"></ul>
+  <div id="hosts-card" hidden>
+    <div id="hosts-header">Enabled hosts</div>
+    <ul id="list"></ul>
+  </div>
 `;
 
 function setActiveTab(url) {
@@ -110,7 +112,7 @@ describe('popup states', () => {
       'https://ghe.corp.example',
     ]);
     expect(rows[0].querySelector('button').textContent).toBe('Remove');
-    expect(document.getElementById('hosts-header').hidden).toBe(false);
+    expect(document.getElementById('hosts-card').hidden).toBe(false);
   });
 
   test('state 5: a wildcard grant is listed and removable', async () => {
@@ -134,6 +136,6 @@ describe('popup states', () => {
     setActiveTab('https://github.com/owner/repo/pull/1/files');
     await openPopup();
     expect(document.querySelectorAll('#list li')).toHaveLength(0);
-    expect(document.getElementById('hosts-header').hidden).toBe(true);
+    expect(document.getElementById('hosts-card').hidden).toBe(true);
   });
 });

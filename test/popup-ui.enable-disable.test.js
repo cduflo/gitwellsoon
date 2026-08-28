@@ -11,8 +11,10 @@ const POPUP_DOM = `
   <div id="status"></div>
   <button id="action" hidden></button>
   <div id="msg" hidden></div>
-  <div id="hosts-header" hidden></div>
-  <ul id="list"></ul>
+  <div id="hosts-card" hidden>
+    <div id="hosts-header">Enabled hosts</div>
+    <ul id="list"></ul>
+  </div>
 `;
 
 const HOST = 'code.corp.example';

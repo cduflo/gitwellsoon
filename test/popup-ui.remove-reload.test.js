@@ -19,8 +19,10 @@ describe('popup Remove row triggers revoke, unregister and reload', () => {
       <div id="status"></div>
       <button id="action" hidden></button>
       <div id="msg" hidden></div>
-      <div id="hosts-header" hidden></div>
-      <ul id="list"></ul>
+      <div id="hosts-card" hidden>
+        <div id="hosts-header">Enabled hosts</div>
+        <ul id="list"></ul>
+      </div>
     `;
     global.chrome.__mockState.tabState.tabs = [
       { id: 321, url: `https://${HOST}/owner/repo/pull/1/files` },

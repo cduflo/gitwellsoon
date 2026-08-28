@@ -54,7 +54,7 @@ async function disableHost(host) {
 async function renderGrantedHosts() {
   const listEl = $('list');
   const hosts = await PopupLib.listGrantedHosts(chrome);
-  $('hosts-header').hidden = hosts.length === 0;
+  $('hosts-card').hidden = hosts.length === 0;
   listEl.innerHTML = '';
   hosts.forEach((host) => {
     const li = document.createElement('li');

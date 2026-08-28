@@ -219,14 +219,6 @@
     }
 
     startObserver();
-
-    window.addEventListener('unload', () => {
-      if (observer) {
-        observer.disconnect();
-        observer = null;
-        log('Observer disconnected');
-      }
-    });
   }
 
   function addWhitespaceParam() {
