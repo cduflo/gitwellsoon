@@ -8,7 +8,7 @@
 
 ### About
 
-Git Well Soon is a Chrome extension (version 2.1.0.0) that automatically persists the 'Hide whitespace changes' setting when reviewing pull requests on GitHub and GitHub Enterprise instances.
+Git Well Soon is a Chrome extension (version 3.1.0.0) that automatically persists the 'Hide whitespace changes' setting when reviewing pull requests on GitHub and GitHub Enterprise instances.
 
 The name is cheeky way of saying I hope GitHub will implement this feature themselves and make my extension obsolete, Git Well Soon!
 
@@ -33,19 +33,28 @@ When you navigate to a pull request page with the `/files` or `/changes` view on
 
 - Manifest: MV3
 - Permissions:
-  - Required: `storage` (enables saving your custom hosts in `chrome.storage.sync` under `extraHosts`).
-  - Optional host origins (requested at runtime when you add a host via the popup).
-  - Optional: `tabs` (requested from the popup only if you enable it; used to prefill the input with the active tab’s host and to auto-reload the active tab after enabling Tabs or after add/remove of a host). No background/service worker and no scripting permission.
-- Content script scope: Runs on GitHub and, once granted, on your enterprise host(s) for PR files/changes, compare, commits, and commit pages. The logic is gated by an allowlist (`github.com` and typical GitHub-like hosts by default; your custom hosts are matched from `extraHosts`).
-- Popup behavior:
-  - Add/remove hosts; host list updates immediately; clear button always visible; input can prefill from the active tab if Tabs permission is granted.
-  - If the Chrome permission prompt closes the popup, the pending add is finalized upon reopening (no second click).
+  - Required: `scripting` (registers the content script on the enterprise origins you explicitly grant) and `activeTab` (reads the current tab's hostname so the popup can offer one-click enable, and reloads that tab afterwards). Both are warning-free.
+  - Optional host origins, requested at runtime when you enable a host from the popup.
+  - No `storage` and no `tabs` permission. Granted origins are the only place host state lives.
+- Content script scope: Runs on GitHub and, once granted, on your enterprise host(s) for PR files/changes, compare, commits, and commit pages. A host is allowed to act when it carries an explicit grant, or when it matches the built-in GitHub-like hostname heuristic (`github.`, `ghe.`, `git.`), which is what keeps existing enterprise users working with no setup.
+- Background: a minimal service worker (`worker.js`) that does exactly one thing — on install/update and browser startup it rebuilds the dynamic content-script registrations from your granted origins. Dynamic registrations do not survive an extension update; permissions do.
+- Popup behavior (five states, derived from the active tab):
+  1. Not an https page — a neutral note, no button.
+  2. Built-in GitHub host — "✓ Active on &lt;host&gt;".
+  3. Granted host — "✓ Active on &lt;host&gt;" plus **Disable**.
+  4. Ungranted host — **Enable on &lt;host&gt;**, or **Pin permission for &lt;host&gt;** if the host already works via the heuristic.
+  5. Below that, the list of granted hosts, each with **Remove**.
+  A host can only be enabled while you are visiting it. If the Chrome permission prompt closes the popup mid-grant, just reopen it — the popup re-derives everything from your permissions, so nothing is left half-done.
+- In-page nudge: on an enterprise host that works via the heuristic but has no explicit grant, a small dismissible banner on diff pages points you at the popup. Dismissing it is remembered per domain and it never returns.
 - Implementation notes:
+  - `popup-lib.js` is shared by the popup (`<script>`) and the worker (`importScripts`), so both use one host classifier and one registration spec.
   - `listGrantedHosts` enumerates granted origins and excludes built-in GitHub hosts and wildcard-only hostnames.
-  - `scheduleReloadIfActiveMatches` reloads the active tab (when Tabs is granted) if the hostname matches the host that was just added/removed.
+  - `scheduleReloadIfActiveMatches` reloads the active tab if its hostname matches the host just enabled or removed.
+  - `content.js` is wrapped in an IIFE with a once-guard: on a granted host it is injected twice (manifest match plus dynamic registration) into one shared isolated world, and only the first execution may install anything.
 - Tests & Dev:
-  - All tests live in `test/`; UI and library coverage added; e2e tests hardened for SPA navigation and offline scenarios.
+  - All tests live in `test/`. Unit tests: `npx jest --testPathIgnorePatterns=test/e2e.test.js`. E2E (headful Chrome against live GitHub): `npm run test:e2e`.
   - Local dev site under `site/` with a tiny server `scripts/dev-site.js`. Start with `npm run start:site` and (optionally) tunnel via `ngrok http 8080`.
+  - `docs/V3.1-DESIGN.md` is the 3.1 decision record; `docs/V-CHECKLIST.md` tracks what still needs a manual pass in real Chrome before a store submission.
 
 The extension was created in response to a GitHub community issue where users requested persistent whitespace settings: [GitHub Community Discussion #5486](https://github.com/community/community/discussions/5486).
 
@@ -55,13 +64,14 @@ Simply install the extension and browse GitHub pull requests as usual. The white
 
 ### Enterprise hosts
 
-The extension targets some known GitHub Enterprise url patterns, but you can manually add your specific GitHub Enterprise url domain by:
+The extension already works on many GitHub Enterprise hosts out of the box (anything with `github.`, `ghe.` or `git.` in the hostname). To pin permission for your host explicitly — recommended, and required for hosts that don't match those patterns:
 
-1. Click the extension’s toolbar icon to open the popup.
-2. Enable the required `Storage` permission, so the extension can save and manage your list of hosts.
-3. Optionally, enable the `Tabs` permission, so the extension can intelligently reload and auto-fill host names. Again, this is an optional permission to enable nice-to-have features.
-4. Enter your host (for example: `https://github.company.com`) and click Add.
-5. Reload the target tab; `w=1` will be applied on PR files/compare/commit(s) routes on that host.
+1. Visit a pull request page on your enterprise host.
+2. Click the extension’s toolbar icon.
+3. Click **Enable on &lt;host&gt;** (or **Pin permission for &lt;host&gt;**) and accept the Chrome permission prompt.
+4. The tab reloads itself and `w=1` is applied on PR files/changes, compare, commits and commit routes on that host.
+
+To turn a host off again, open the popup on that host and click **Disable**, or use **Remove** in the Enabled hosts list.
 
 ---
 
@@ -85,25 +95,26 @@ Steps:
 - `ngrok http 8080`
 - Note the https URL shown, e.g.: `https://1234567890.ngrok-free.app`
 
-3. Grant the host in the extension popup
-
-- Open the popup, enter exactly the host shown by ngrok, e.g. `https://1234567890.ngrok-free.app`, and click Add.
-- Accept the permission prompt. If the Chrome permission prompt closes the popup, just reopen it; the host will finalize automatically.
-- If you enable Tabs permission, the current tab will auto-reload after granting.
-
-4. Navigate to the simulated PR files or changes URL
+3. Navigate to the simulated PR files or changes URL
 
 - Visit: `https://1234567890.ngrok-free.app/owner/repo/pull/123/files` or `https://1234567890.ngrok-free.app/owner/repo/pull/123/changes`
-- The extension should append `?w=1` to the URL automatically.
+- Nothing happens yet: the host is not granted and does not match the GitHub-like heuristic.
+
+4. Enable the host from the popup
+
+- Click the toolbar icon. The popup should offer **Enable on 1234567890.ngrok-free.app**.
+- Click it and accept the Chrome permission prompt. If the prompt closes the popup, just reopen it — the popup re-derives its state from your permissions.
+- The tab reloads itself and `?w=1` is appended.
 
 What to verify:
 
-- Adding/removing the host updates the popup list immediately (no manual refresh).
-- With Tabs permission enabled, the active tab auto-reloads after add/remove.
-- Storage permission off disables input and clears the list display; turning it back on restores the list.
+- Before granting: the URL is untouched and no banner appears.
+- After granting: the popup shows "✓ Active on …" with a **Disable** button, and the host appears in the Enabled hosts list.
+- In the service worker console (`chrome://extensions` → *service worker*), `chrome.scripting.getRegisteredContentScripts()` lists `gws-1234567890.ngrok-free.app`.
+- **Disable** revokes the grant, drops the registration, and `w=1` is no longer applied on a fresh navigation.
 
 Troubleshooting:
 
-- If input doesn’t prefill with the current host, enable Tabs permission.
-- If add appears to require a second click, just reopen the popup—pending adds are finalized automatically.
-- Make sure you add the exact ngrok subdomain (no wildcards).
+- `optional_host_permissions` is https-only, so a plain `http://localhost` origin cannot substitute for the tunnel.
+- Free ngrok domains do not contain `github.`/`ghe.`/`git.`, which is exactly what makes them a good stand-in for an enterprise host that needs an explicit grant.
+- The full checklist, including what still needs a manual pass, lives in `docs/V-CHECKLIST.md`.
