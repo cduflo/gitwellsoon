@@ -30,8 +30,11 @@
         margin-bottom: 10px;
       }
       #status {
-        margin-bottom: 8px;
         line-height: 1.4;
+        text-align: center;
+      }
+      #status:has(~ #action:not([hidden])) {
+        margin-bottom: 8px;
       }
       button {
         height: 32px;
