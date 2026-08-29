@@ -2,54 +2,51 @@
  * @jest-environment jsdom
  */
 
+// Ported from the 2.x remove flow: the per-row Remove button in the granted
+// hosts list revokes the grant, drops the dynamic registration and reloads the
+// active tab when it is the host being removed.
+
 const PopupLib = require('../popup-lib.js');
 
-describe('popup remove triggers reload and updates storage', () => {
+const HOST = 'abc-github.cloud.xyz';
+
+describe('popup Remove row triggers revoke, unregister and reload', () => {
   beforeEach(() => {
     jest.resetModules();
     require('./mock-extension-apis.js');
+    global.chrome.__mockState.reset();
     document.body.innerHTML = `
-      <div id="hosts-card"></div>
-      <div id="hosts-nudge"></div>
-      <span id="status-dot"></span>
-      <span id="status-text"></span>
-      <button id="storage-switch" aria-checked="true"></button>
-      <button id="tabs-switch" aria-checked="true"></button>
-      <div class="input-wrap">
-        <input id="host" />
-        <button id="clear-host"></button>
+      <div id="status"></div>
+      <button id="action" hidden></button>
+      <div id="msg" hidden></div>
+      <div id="hosts-card" hidden>
+        <div id="hosts-header">Enabled hosts</div>
+        <ul id="list"></ul>
       </div>
-      <button id="add"></button>
-      <div id="msg"></div>
-      <ul id="list"></ul>
     `;
-    // Grant tabs permission
-    global.chrome.permissions.request({ permissions: ['tabs'] }, () => {});
+    global.chrome.__mockState.tabState.tabs = [
+      { id: 321, url: `https://${HOST}/owner/repo/pull/1/files` },
+    ];
   });
 
-  test('remove updates storage and schedules reload if active tab matches', async () => {
-    const spy = jest.spyOn(PopupLib, 'scheduleReloadIfActiveMatches').mockResolvedValue(true);
+  test('remove revokes the origin, unregisters and reloads the matching tab', async () => {
+    global.chrome.__mockState.permState.origins.add(`https://${HOST}/*`);
+    await PopupLib.registerHosts(global.chrome, [HOST]);
 
-    // Seed storage and origins
-    await new Promise((r) => global.chrome.storage.sync.set({ extraHosts: ['abc-github.cloud.xyz'] }, () => r()));
-    await new Promise((r) => global.chrome.permissions.request({ origins: ['https://abc-github.cloud.xyz/*'] }, () => r()));
-
+    jest.resetModules();
     require('../popup.js');
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await new Promise((r) => setTimeout(r, 10));
 
     const items = document.querySelectorAll('#list li');
-    expect(items.length).toBe(1);
+    expect(items).toHaveLength(1);
 
-    // Click Remove
-    const removeBtn = items[0].querySelector('button');
-    removeBtn.click();
+    items[0].querySelector('button').click();
     await new Promise((r) => setTimeout(r, 30));
 
-    const after = await new Promise((r) => global.chrome.storage.sync.get({ extraHosts: [] }, (v) => r(v.extraHosts)));
-    expect(after).toEqual([]);
-    expect(spy).toHaveBeenCalledWith(global.chrome, 'abc-github.cloud.xyz', 1000);
-
-    spy.mockRestore();
+    expect(global.chrome.__mockState.permState.origins.has(`https://${HOST}/*`)).toBe(false);
+    expect(global.chrome.__mockState.scriptState.registered).toEqual([]);
+    expect(global.chrome.__mockState.tabState.reloaded).toContain(321);
+    expect(document.querySelectorAll('#list li')).toHaveLength(0);
   });
 });

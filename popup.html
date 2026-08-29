@@ -9,119 +9,47 @@
         --border: #d0d7de;
         --bg: #fff;
         --accent: #2f81f7;
-        --success: #2da44e;
-        --danger: #d1242f;
-        --card: #f6f8fa;
-      }
-      a {
-        color: var(--accent);
-        text-decoration: none;
-        font-size: 12px;
-        font-weight: 500;
       }
       body {
         font: 13px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         margin: 12px;
-        width: 340px;
+        width: 300px;
         background: var(--bg);
         color: var(--fg);
-        border-radius: 8px; /* popover rounding */
-        overflow: hidden; /* clip children to rounded corners */
+        border-radius: 8px;
+        overflow: hidden;
       }
       h3 {
         margin: 0 0 10px;
         font-size: 15px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .status-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        display: inline-block;
-      }
-      .status-text {
-        font-size: 12px;
-        color: var(--muted);
       }
       .card {
         border: 1px solid var(--border);
-        background: #fff;
         border-radius: 8px;
         padding: 10px;
-        margin: 4px;
+        margin-bottom: 10px;
       }
-      .card.subdued {
-        opacity: 0.6;
-        filter: grayscale(0.2);
+      #status {
+        line-height: 1.4;
+        text-align: center;
       }
-      .row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      input {
-        flex: 1;
-        height: 32px;
-        padding: 0 10px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
+      #status:has(~ #action:not([hidden])) {
+        margin-bottom: 8px;
       }
       button {
         height: 32px;
-        padding: 0 10px;
+        padding: 0 12px;
         border-radius: 8px;
         border: 1px solid var(--border);
         background: #fff;
         cursor: pointer;
+        font: inherit;
       }
-      .btn-primary {
+      #action {
+        width: 100%;
         background: var(--accent);
         color: #fff;
         border: none;
-      }
-      .btn-link {
-        background: transparent;
-        border: none;
-        color: var(--muted);
-      }
-      .help {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        border: 1px solid var(--border);
-        color: var(--muted);
-        background: var(--card);
-        font-size: 11px;
-        cursor: help;
-      }
-      ul {
-        list-style: none;
-        padding-left: 0;
-        margin: 8px 0 0;
-        max-height: 220px;
-        overflow: auto;
-      }
-      li {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding: 4px 0;
-        border-bottom: 1px dashed #f0f2f4;
-      }
-      .host {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          'Liberation Mono', 'Courier New', monospace;
-        font-size: 12px;
-      }
-      .actions {
-        display: flex;
-        gap: 6px;
       }
       .msg {
         margin-top: 8px;
@@ -136,237 +64,84 @@
         color: #86181d;
         border-color: #ffdce0;
       }
-      .msg.success {
-        background: #e6ffed;
-        color: #1d7a32;
-        border-color: #bef5cb;
-      }
-      .hint {
+      #hosts-header {
         color: var(--muted);
         font-size: 12px;
+        margin-bottom: 6px;
+      }
+      ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+        max-height: 200px;
+        overflow: auto;
+      }
+      li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 4px 0;
+        border-bottom: 1px dashed #f0f2f4;
+      }
+      li button {
+        height: 24px;
+        padding: 0 8px;
+        font-size: 12px;
+      }
+      .host {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          'Liberation Mono', 'Courier New', monospace;
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .footer {
         display: flex;
         justify-content: space-between;
-        margin-top: 8px;
         align-items: center;
+        gap: 8px;
       }
-      hr.divider {
-        margin: 10px 0;
-        border: 0;
-        border-top: 1px solid var(--border);
-      }
-      /* Accessible switch */
-      .switch {
-        position: relative;
-        width: 36px;
-        height: 20px;
-        background: #eaeef2;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        vertical-align: middle;
-        align-self: center; /* ensure centering within flex rows */
-        line-height: 0; /* remove baseline offset */
-        padding: 0;
-        box-sizing: border-box;
-      }
-      .switch::after {
-        content: '';
-        position: absolute;
-        left: 1px;
-        width: 16px;
-        height: 16px;
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 50%;
-        transition: transform 120ms ease;
-      }
-      .switch[aria-checked='true'] {
-        background: #1f6feb;
-        border-color: #1f6feb;
-      }
-      .switch[aria-checked='true']::after {
-        transform: translateX(16px);
-        border-color: #1f6feb;
-      }
-
-      /* Input with clear button */
-.input-wrap {
-        position: relative;
-        flex: 1;
-        min-width: 0; /* allow flex item to shrink and avoid overflow */
-      }
-.input-wrap input {
-        width: 100%;
-        padding-right: 28px; /* room for clear button */
-        box-sizing: border-box; /* include padding/border inside width */
-        flex: 0 1 auto; /* prevent overflowing the Add button */
-        display: block;
-      }
-.clear-btn {
-        position: absolute;
-        right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        border: 1px solid var(--border);
-        background: var(--card);
-        color: var(--muted);
+      .footer a {
+        color: var(--accent);
+        text-decoration: none;
         font-size: 12px;
-        line-height: 16px;
-        text-align: center;
-        padding: 0;
-        cursor: pointer;
-        z-index: 1; /* ensure above the input element */
-        display: inline-flex; /* always visible */
-        align-items: center;
-        justify-content: center;
-      }
-      .clear-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
+        font-weight: 500;
       }
     </style>
   </head>
   <body>
-    <h3
-      style="
-        padding: 0 5px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      "
-    >
-      <span>
-        Custom GitHub Hosts
-        <span
-          class="help"
-          title="Allow the extension to act on your custom GitHub hosts."
-        >
-          ?
-        </span>
-      </span>
-      <span style="display: flex; align-items: center; gap: 4px">
-        <span class="status-dot" id="status-dot"></span>
-        <span class="status-text" id="status-text">Inactive</span>
-      </span>
-    </h3>
+    <h3>Git Well Soon</h3>
 
-    <div class="card" id="perms-card">
-      <h3>Permissions</h3>
-      <div class="row" style="justify-content: space-between">
-        <div>
-          <strong>Storage</strong> <span class="hint">(Required)</span>
-          <span class="help" title="Enable to save your custom hosts.">?</span>
-        </div>
-        <button
-          id="storage-switch"
-          class="switch"
-          role="switch"
-          aria-checked="false"
-          aria-label="Toggle storage permission"
-        ></button>
-      </div>
-      <div class="row" style="justify-content: space-between; margin-top: 8px">
-        <div>
-          <strong>Tabs</strong> <span class="hint">(Optional)</span>
-          <span
-            class="help"
-            title="Enables auto-reload of the current tab after adding or removing a host."
-            >?</span
-          >
-        </div>
-        <button
-          id="tabs-switch"
-          class="switch"
-          role="switch"
-          aria-checked="false"
-          aria-label="Toggle tabs permission"
-        ></button>
-      </div>
+    <div class="card">
+      <div id="status" aria-live="polite"></div>
+      <button id="action" hidden></button>
+      <div id="msg" class="msg" aria-live="polite" hidden></div>
     </div>
 
-    <div class="card" id="hosts-card">
-      <h3>Custom hosts</h3>
-      <div
-        class="hint"
-        id="hosts-nudge"
-        style="display: none; margin-bottom: 6px"
-      >
-        Enable Storage to manage custom hosts.
-      </div>
-      <div class="row" style="margin-bottom: 6px">
-        <div class="input-wrap">
-          <input
-            id="host"
-            placeholder="https://abc-github.cloud.xyz"
-            aria-label="Custom host origin"
-          />
-          <button
-            id="clear-host"
-            class="clear-btn"
-            aria-label="Clear input"
-            title="Clear"
-          >
-            ×
-          </button>
-        </div>
-        <button id="add" class="btn-primary">Add</button>
-      </div>
-      <div class="hint" style="margin-bottom: 6px">
-        Tip: After granting site access, reload the tab once to activate
-        changes.
-      </div>
-      <div id="msg" class="msg" aria-live="polite" style="display: none"></div>
+    <div id="hosts-card" class="card" hidden>
+      <div id="hosts-header">Enabled hosts</div>
       <ul id="list"></ul>
     </div>
 
-    <hr class="divider" />
     <div class="footer">
-      <div
-        style="
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          justify-content: space-between;
-        "
-      >
-        <a
-          href="https://chromewebstore.google.com/detail/git-well-soon/ehpeaofieafibmhiagianfjjblpnmbdo/reviews"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          ⭐ Rate on Chrome Web Store
-        </a>
-        <a
-          href="https://github.com/cduflo/gitwellsoon/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          🐛 Submit issues
-        </a>
-      </div>
-
       <a
-        href="https://ko-fi.com/Z8Z11M8JYN"
+        href="https://chromewebstore.google.com/detail/git-well-soon/ehpeaofieafibmhiagianfjjblpnmbdo/reviews"
         target="_blank"
         rel="noopener noreferrer"
       >
-        <img
-          height="36"
-          style="border: 0px; height: 36px"
-          src="https://storage.ko-fi.com/cdn/kofi5.png?v=6"
-          border="0"
-          alt="Buy Me a Coffee at ko-fi.com"
-        />
+        ⭐ Rate on Chrome Web Store
+      </a>
+      <a
+        href="https://github.com/cduflo/gitwellsoon/issues"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        🐛 Submit issues
       </a>
     </div>
+
     <script src="popup-lib.js"></script>
     <script src="popup.js"></script>
   </body>

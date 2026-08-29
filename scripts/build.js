@@ -28,7 +28,16 @@ function copyDir(src, dest) {
 }
 
 // Files and directories to copy
-const filesToCopy = ['README.md', 'content.js', 'manifest.json', 'popup.html', 'popup.js', 'popup-lib.js'];
+const filesToCopy = [
+  'README.md',
+  'content.js',
+  'granted-marker.js',
+  'manifest.json',
+  'popup.html',
+  'popup.js',
+  'popup-lib.js',
+  'worker.js',
+];
 const dirsToCopy = ['assets'];
 
 // Copy each file
